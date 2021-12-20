@@ -1,0 +1,58 @@
+import Store from "../models/Store";
+import Branch from "../models/Branch";
+
+
+//Creamos una nueva tienda
+export const createStore = async (req, res) => {
+  const { storeName } = req.body;
+
+  try {
+      const newStore = new Store({
+      storeName,
+      branches: [],
+      });
+
+    const storeSaved = await newStore.save();
+
+    res.status(201).json(storeSaved);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error);
+  }
+};
+
+//Buscamos una tienda por ID
+export const getStoreById = async (req, res) => {
+  const { storeId } = req.params;
+
+  const store = await Store.findById(storeId);
+  res.status(200).json(store);
+};
+
+//Buscamos todas las tiendas
+export const getStores = async (req, res) => {
+  const stores = await Store.find();
+  return res.json(stores);
+};
+
+//Modificamos una tienda por ID
+export const updateStoreById = async (req, res) => {
+  const updatedStore = await Store.findByIdAndUpdate(
+    req.params.storeId,
+    req.body,
+    {
+      new: true,
+    }
+  );
+  res.status(204).json(updatedStore);
+};
+
+//Eliminamos una tienda por ID
+export const deleteStoreById = async (req, res) => {
+  const { storeId } = req.params;
+
+  await Store.findByIdAndDelete(storeId);
+
+  // code 200 is ok too
+  res.status(204).json();
+};

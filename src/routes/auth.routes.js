@@ -12,12 +12,14 @@ router.use((req, res, next) => {
   next();
 });
 
+//RATA para el registro de usuarios
 router.post(
   "/signup",
   [verifySignup.checkDuplicateUsernameOrEmail, verifySignup.checkRolesExisted],
   authCtrl.signUp
 );
 
+//RUTA para loguear usuarios ya registrados
 router.post("/signin", authCtrl.signin);
 
 export default router;

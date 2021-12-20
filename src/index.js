@@ -1,3 +1,4 @@
+//Desde aca arranca la aplicacion
 import app from "./app";
 import './database';
 

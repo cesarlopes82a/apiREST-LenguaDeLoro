@@ -1,13 +1,17 @@
+// aca vengo cuando hago los pedidos http
+
 import User from "../models/User";
 import Role from "../models/Role";
+
 
 import jwt from "jsonwebtoken";
 import config from "../config";
 
+// funciones para registrarse en la aplicacion
 export const signUp = async (req, res) => {
   try {
     // Getting the Request Body
-    const { username, email, password, roles } = req.body;
+    const { username, email, password, stores, roles } = req.body;
     // Creating a new User Object
     const newUser = new User({
       username,
@@ -15,12 +19,12 @@ export const signUp = async (req, res) => {
       password: await User.encryptPassword(password),
     });
 
-    // checking for roles
+    // checking for roles. con esto reviso si existe el rol que me estan pasando para crear el usuario
     if (req.body.roles) {
-      const foundRoles = await Role.find({ name: { $in: roles } });
+      const foundRoles = await Role.find({ roleName: { $in: roles } });
       newUser.roles = foundRoles.map((role) => role._id);
-    } else {
-      const role = await Role.findOne({ name: "user" });
+    } else { //si no me pasa ningun rol le asigno el rol por defecto
+      const role = await Role.findOne({ roleName: "user" });
       newUser.roles = [role._id];
     }
 
@@ -32,19 +36,40 @@ export const signUp = async (req, res) => {
       expiresIn: 86400, // 24 hours
     });
 
-    return res.status(200).json({ token });
+    return res.status(200).json({ token });  // este es el token que tengo que guardar en el frontend para poder acceder a las rutas que lo requieran 
   } catch (error) {
     console.log(error);
     return res.status(500).json(error);
   }
 };
 
+// funciones para LOGUEARSE en la aplicacion
 export const signin = async (req, res) => {
   try {
+    
+    const { userName, email, password} = req.body;
+    if(!userName) return res.status(401).json({
+      token: null,
+      message: "No user name sent",
+    });
+    if(!email) return res.status(401).json({
+      token: null,
+      message: "No user email sent",
+    });
+    if(!password) return res.status(401).json({
+      token: null,
+      message: "No user password sent",
+    });
+    
     // Request body email can be an email or username
-    const userFound = await User.findOne({ email: req.body.email }).populate(
+    const userFound = await User.findOne({ email: email }).populate(  // Con el polulate trae todo el objero del rol en lugar de solo traer el id
       "roles"
     );
+
+    if(userFound.username != userName) return res.status(401).json({
+      token: null,
+      message: "User name / email mismatched",
+    });
 
     if (!userFound) return res.status(400).json({ message: "User Not Found" });
 

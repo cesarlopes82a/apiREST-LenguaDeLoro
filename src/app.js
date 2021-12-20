@@ -1,3 +1,4 @@
+//desde caca configuro la app de expressno
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
@@ -6,13 +7,14 @@ import helmet from "helmet";
 import pkg from "../package.json";
 
 import productRoutes from "./routes/products.routes";
+import storesRoutes from "./routes/stores.routes"
 import usersRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
 
 import { createRoles, createAdmin} from "./libs/initialSetup";
 
-const app = express();
-createRoles();
+const app = express();  //con esto inicio el servidor del backend. aca empieza a estar viva la api
+createRoles();          // lo primero que hago despues de levantar el backend es crear los roles si no exisen. Llamo la fucion desde libs/initialSetup
 createAdmin();
 
 // Settings
@@ -33,7 +35,7 @@ app.use(express.urlencoded({ extended: false }));
 // Welcome Routes
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to my Products API",
+    message: "Welcome to my LdL API",
     name: app.get("pkg").name,
     version: app.get("pkg").version,
     description: app.get("pkg").description,
@@ -43,6 +45,7 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/api/products", productRoutes);
+app.use("/api/stores",storesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/auth", authRoutes);
 

@@ -13,9 +13,8 @@ export const createRoles = async () => {
 
     // Create default Roles
     const values = await Promise.all([
-      new Role({ name: "user" }).save(),
-      new Role({ name: "moderator" }).save(),
-      new Role({ name: "admin" }).save(),
+      new Role({ roleName: "adminMaster" }).save(),
+      new Role({ roleName: "user" }).save(),
     ]);
 
     console.log(values);
@@ -24,20 +23,22 @@ export const createRoles = async () => {
   }
 };
 
+
+// aca creamos un usuario administrador por defecto
 export const createAdmin = async () => {
   // check for an existing admin user
-  const user = await User.findOne({ email: "admin@localhost" });
+  const user = await User.findOne({ email: "adminmaster@localhost" });
   // get roles _id
-  const roles = await Role.find({ name: { $in: ["admin", "moderator"] } });
+  const roles = await Role.find({ name: { $in: ["adminMaster","admin", "moderator"] } });
 
   if (!user) {
     // create a new admin user
     await User.create({
-      username: "admin",
-      email: "admin@localhost",
-      password: await bcrypt.hash("admin", 10),
+      username: "adminmaster",
+      email: "adminmaster@localhost",
+      password: await bcrypt.hash("password", 10),
       roles: roles.map((role) => role._id),
     });
-    console.log('Admin User Created!')
+    console.log('AdminMaster User Created!')
   }
 };

@@ -27,7 +27,7 @@ export const isModerator = async (req, res, next) => {
     const roles = await Role.find({ _id: { $in: user.roles } });
 
     for (let i = 0; i < roles.length; i++) {
-      if (roles[i].name === "moderator") {
+      if (roles[i].roleName === "moderator") {
         next();
         return;
       }
@@ -46,13 +46,32 @@ export const isAdmin = async (req, res, next) => {
     const roles = await Role.find({ _id: { $in: user.roles } });
 
     for (let i = 0; i < roles.length; i++) {
-      if (roles[i].name === "admin") {
+      if (roles[i].roleName === "admin") {
         next();
         return;
       }
     }
 
     return res.status(403).json({ message: "Require Admin Role!" });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send({ message: error });
+  }
+};
+
+export const isAdminMaster = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+    const roles = await Role.find({ _id: { $in: user.roles } });
+    
+    for (let i = 0; i < roles.length; i++) {
+      if (roles[i].roleName === "adminMaster") {
+        next();
+        return;
+      }
+    }
+
+    return res.status(403).json({ message: "Require adminMaster Role!" });
   } catch (error) {
     console.log(error)
     return res.status(500).send({ message: error });

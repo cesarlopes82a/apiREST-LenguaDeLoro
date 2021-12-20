@@ -15,6 +15,10 @@ const productSchema = new Schema(
       type: String,
       required: true,
     },
+    stores: [{
+      type: Schema.Types.ObjectId,
+      ref: "Store",
+    }],
     roles: [
       {
         type: Schema.Types.ObjectId,
@@ -28,6 +32,7 @@ const productSchema = new Schema(
   }
 );
 
+// creamos los metodos para encriptar y comparar un password
 productSchema.statics.encryptPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
   return await bcrypt.hash(password, salt);
