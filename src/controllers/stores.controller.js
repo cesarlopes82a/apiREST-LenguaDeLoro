@@ -1,16 +1,23 @@
 import Store from "../models/Store";
+import appfile from "../app"
 import Branch from "../models/Branch";
+import mongoose from "mongoose";
+import config from "../config";
+import userconnection from "../libs/globalConnectionStack";
 
 
-//Creamos una nueva tienda
+//Creamos una nueva tienda --> esto funciona
 export const createStore = async (req, res) => {
-  const { storeName } = req.body;
 
+  const { storeName, dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
   try {
-      const newStore = new Store({
+    userconnection.createUserConnectionStack(dbuserid);
+    
+    const newStore = new config.globalConnectionStack[dbuserid].store({
+      //save user model to the corresponding stack
       storeName,
       branches: [],
-      });
+    });
 
     const storeSaved = await newStore.save();
 
@@ -20,6 +27,14 @@ export const createStore = async (req, res) => {
     return res.status(500).json(error);
   }
 };
+
+
+
+
+
+
+
+
 
 //Buscamos una tienda por ID
 export const getStoreById = async (req, res) => {

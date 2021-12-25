@@ -2,11 +2,18 @@ import { Router } from "express";
 const router = Router();
 
 import * as storesCtrl from "../controllers/stores.controller";
-import { authJwt, storeChecks } from "../middlewares";
+import { authJwt, storeChecks, dbusers } from "../middlewares";
 
 router.get("/", storesCtrl.getStores);
 
 router.get("/:storeId", storesCtrl.getStoreById);
+/*
+router.post(
+  "/createStore",
+  [authJwt.verifyToken, authJwt.isAdminMaster, storeChecks.checkStoreExisted],
+  storesCtrl.createStore
+);
+*/
 
 router.post(
   "/createStore",

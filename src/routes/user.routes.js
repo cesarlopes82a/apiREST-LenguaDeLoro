@@ -2,7 +2,7 @@ import { Router } from "express";
 const router = Router();
 
 import * as usersCtrl from "../controllers/user.controller";
-import { authJwt, verifySignup } from "../middlewares";
+import { authJwt, verifySignup, dbusers } from "../middlewares";
 
 router.post(
   "/createUser",

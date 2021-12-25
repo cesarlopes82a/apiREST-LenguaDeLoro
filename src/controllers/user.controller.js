@@ -22,7 +22,7 @@ export const createUser = async (req, res) => {
 
     // saving the new user
     const savedUser = await user.save();
-
+    
     return res.status(200).json({
       _id: savedUser._id,
       username: savedUser.username,
