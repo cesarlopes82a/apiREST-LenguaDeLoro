@@ -15,4 +15,6 @@ const storeSchema = new Schema(
   }
 );
 
+
+
 export default model("Store", storeSchema);

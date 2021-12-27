@@ -23,7 +23,6 @@ export const createRoles = async () => {
   }
 };
 
-
 // aca creamos un usuario administrador por defecto
 export const createAdmin = async () => {
   // check for an existing admin user
@@ -37,8 +36,11 @@ export const createAdmin = async () => {
       username: "adminmaster",
       email: "adminmaster@localhost",
       password: await bcrypt.hash("password", 10),
+      adminMasterDBuser: "123456",
       roles: roles.map((role) => role._id),
     });
     console.log('AdminMaster User Created!')
   }
 };
+
+

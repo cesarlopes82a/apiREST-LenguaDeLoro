@@ -14,7 +14,7 @@ export const createUser = async (req, res) => {
       username,
       email,
       password,
-      roles: rolesFound.map((role) => role._id), //esto da a confucion la palabra (role) y role. son solo re referencia.
+      roles: rolesFound.map((role) => role._id), //esto da a confucion la palabra (role) y role. son solo de referencia.
     });
 
     // encrypting password

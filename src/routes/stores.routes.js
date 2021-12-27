@@ -2,22 +2,15 @@ import { Router } from "express";
 const router = Router();
 
 import * as storesCtrl from "../controllers/stores.controller";
-import { authJwt, storeChecks, dbusers } from "../middlewares";
+import { authJwt, storeChecks, userChecks } from "../middlewares";
 
 router.get("/", storesCtrl.getStores);
 
 router.get("/:storeId", storesCtrl.getStoreById);
-/*
-router.post(
-  "/createStore",
-  [authJwt.verifyToken, authJwt.isAdminMaster, storeChecks.checkStoreExisted],
-  storesCtrl.createStore
-);
-*/
 
 router.post(
   "/createStore",
-  [authJwt.verifyToken, authJwt.isAdminMaster, storeChecks.checkStoreExisted],
+  [ authJwt.verifyToken, authJwt.isAdminMaster, storeChecks.checkStoreExisted],
   storesCtrl.createStore
 );
   

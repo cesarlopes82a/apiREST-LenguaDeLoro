@@ -30,6 +30,7 @@ export const signUp = async (req, res) => {
       const role = await Role.findOne({ roleName: "adminMaster" });
       newUser.roles = [role._id];
     }
+    
 
     // Saving the User Object in Mongodb
     const savedUser = await newUser.save();
@@ -38,14 +39,33 @@ export const signUp = async (req, res) => {
       expiresIn: 86400, // 24 hours
     });
 
-    if(userconnection.createUserDB(savedUser)){
-      return res.status(200).json({ token });  // este es el token que tengo que guardar en el frontend para poder acceder a las rutas que lo requieran 
-    }else{
+    //Ahora voy a crear la db del usuario
+    try {
+      await userconnection.createRolesDB(savedUser._id)
+    } catch (error) {
+      console.log(error);
       return res.status(401).json({
         token: null,
-        message: "Error creating user db",
+        message: "Error creating roles in user db",
       });
-    };
+    }
+
+    try {
+      await userconnection.createUserDB(savedUser._id,["adminMaster"]);
+      return res.status(200).json({ token });  // este es el token que tengo que guardar en el frontend para poder acceder a las rutas que lo requieran 
+    } catch (error) {
+      console.log(error);
+      return res.status(401).json({
+        token: null,
+        message: "Error creating adminMaster in user db",
+      });
+    }
+    
+      
+      
+      
+    
+
   } catch (error) {
     console.log(error);
     return res.status(500).json(error);
@@ -99,10 +119,10 @@ export const signin = async (req, res) => {
     const dbuserid = userFound._id
     if(dbuserid){
       if(!userFound.adminMasterDBuser){ 
-        userconnection.createUserDB(dbuserid)
+        await userconnection.createUserDB(dbuserid,["adminMaster"])
       }
       if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
-        userconnection.createUserConnectionStack(dbuserid);
+        await userconnection.createUserConnectionStack(dbuserid);
       }
     }
 
