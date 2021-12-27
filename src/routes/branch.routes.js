@@ -6,7 +6,7 @@ import { authJwt, branchChecks } from "../middlewares";
 
 router.get("/", branchCtrl.getBranches);
 
-router.get("/:storeId", branchCtrl.getBranchById);
+router.get("/:branchId", branchCtrl.getBranchById);
 
 router.post(
   "/createBranch",

@@ -30,11 +30,11 @@ export const createStore = async (req, res) => {
 
 export const findStoreById = async (req, res) => {
   const { storeId, dbuserid} = req.body; 
-  if (!storeId) return res.status(403).json({ message: "No store name provided" });
-  if (!dbuserid) return res.status(403).json({ message: "No dbuserid name provided" });
+  if (!storeId) return res.status(403).json({ message: "No store ID provided" });
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   //VERIFICO si tengo un formato valido de id
-  if (!storeId.match(/^[0-9a-fA-F]{24}$/)){
+  if (!String(storeId).match(/^[0-9a-fA-F]{24}$/)){
     return res.status(400).json({ message: "Invalid store ID: " + storeId });
   } 
 
@@ -44,19 +44,17 @@ export const findStoreById = async (req, res) => {
   res.status(201).json(storeFound);
 }
 
-
-//Creamos una nueva tienda 
 export const updateStoreById = async (req, res) => {
   const  storeId  = req.params.storeId;
-  if (!storeId) return res.status(403).json({ message: "No store name provided" });
+  if (!storeId) return res.status(403).json({ message: "No store ID provided" });
 
   //VERIFICO si tengo un formato valido de id
-  if (!storeId.match(/^[0-9a-fA-F]{24}$/)){
+  if (!String(storeId).match(/^[0-9a-fA-F]{24}$/)){
     return res.status(400).json({ message: "Invalid store ID: " + storeId });
   } 
 
   const { storeName, dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
-  if (!dbuserid) return res.status(403).json({ message: "No dbuserid name provided" });
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
   if (!storeName) return res.status(403).json({ message: "No storeName name provided" });
 
   try {
@@ -83,15 +81,15 @@ export const updateStoreById = async (req, res) => {
 //Buscamos una tienda por ID
 export const getStoreById = async (req, res) => {
   const  storeId  = req.params.storeId;
-  if (!storeId) return res.status(403).json({ message: "No store name provided" });
+  if (!storeId) return res.status(403).json({ message: "No store ID provided" });
   
   //VERIFICO si tengo un formato valido de id
-  if (!storeId.match(/^[0-9a-fA-F]{24}$/)){
+  if (!String(storeId).match(/^[0-9a-fA-F]{24}$/)){
     return res.status(400).json({ message: "Invalid store ID: " + storeId });
   } 
 
   const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
-  if (!dbuserid) return res.status(403).json({ message: "No dbuserid name provided" });
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   try {
     const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId);
@@ -108,7 +106,7 @@ export const getStoreById = async (req, res) => {
 //Buscamos todas las tiendas
 export const getStores = async (req, res) => {
   const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
-  if (!dbuserid) return res.status(403).json({ message: "No dbuserid name provided" });
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid ID provided" });
 
   try {
     const storesFound = await config.globalConnectionStack[dbuserid].store.find();
@@ -125,15 +123,15 @@ export const getStores = async (req, res) => {
 //Eliminamos una tienda por ID
 export const deleteStoreById = async (req, res) => {
   const  storeId  = req.params.storeId;
-  if (!storeId) return res.status(403).json({ message: "No store name provided" });
+  if (!storeId) return res.status(403).json({ message: "No store ID provided" });
   
   //VERIFICO si tengo un formato valido de id
-  if (!storeId.match(/^[0-9a-fA-F]{24}$/)){
+  if (!String(storeId).match(/^[0-9a-fA-F]{24}$/)){
     return res.status(400).json({ message: "Invalid store ID: " + storeId });
   } 
 
   const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
-  if (!dbuserid) return res.status(403).json({ message: "No dbuserid name provided" });
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   try {
     const storeFound = await config.globalConnectionStack[dbuserid].store.findByIdAndDelete(storeId);
@@ -145,12 +143,10 @@ export const deleteStoreById = async (req, res) => {
     console.log(error);
     return res.status(500).json(error);
   }
-
 };
 
 
 export const addBranchToStore = async (storeid, branchid, dbuserid) => {
-
   try {
     const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeid);
     if (!storeFound) return res.status(400).json({ message: "The store " + storeid + " does not exists for this user"});
@@ -187,13 +183,74 @@ export const addBranchToStore = async (storeid, branchid, dbuserid) => {
       console.log(error);
       return res.status(500).json(error);
     }
-    
-    
-    
   } catch (error) {
     console.log("Error al intentar obtener user store.findByid(storeid) ")
     console.log(error);
     return res.status(500).json(error);
   }
+}
 
+export const deleteBranchFromStore = async (storeid, branchid, dbuserid) => {
+  try {
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeid);
+    if (!storeFound) return res.status(400).json({ message: "The store " + storeid + " does not exists for this user"});
+
+    const branchesUpdated = storeFound.branches.filter(element => element != branchid);
+    storeFound.branches = branchesUpdated;
+    const updatedStore = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+      storeid,
+      storeFound,
+      {
+        new: true,
+      }
+    );
+
+  } catch (error) {
+    console.log("Error al intentar .store.findById(storeid)")
+      console.log(error);
+      return res.status(500).json(error);
+  }
+}
+
+
+
+export const findBranchStoreOwner = async (branchid, dbuserid) => {
+  if (!branchid) return res.status(403).json({ message: "No branch ID provided" });
+  
+  //VERIFICO si tengo un formato valido de id
+  if (!String(branchid).match(/^[0-9a-fA-F]{24}$/)){
+    return res.status(400).json({ message: "Invalid branch ID: " + storeId });
+  } 
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
+
+  //const userFound = await config.globalConnectionStack[dbuserid].findById(req.userId);
+  //if(!userFound) return res.status(401).json({ message: "User not found" });
+
+  try {
+    //busco todas las tiendas del usuario
+    const storesFound = await config.globalConnectionStack[dbuserid].store.find();
+    if(storesFound) {console.log("encontre "+ storesFound.length+ " stores")
+    let branchStoreOwner = null
+    //voy a recorrer el array de tiendas del usuario para ver si en alguna de ellas está la branch que tengo que eliminar
+      for (let i = 0; i < storesFound.length; i++) {
+        if(storesFound[i].branches.length >0){
+          //esta tienda tiene branches asociadas, me fijo si está la que quiero eliminar
+          const arreglo = storesFound[i].branches.filter(element => element != branchid)
+          if(storesFound[i].branches.length > arreglo.length)  return branchStoreOwner = storesFound[i]._id
+        }
+        
+        console.log("---------")
+       
+      }
+
+    //console.log("las stores: " + storesFound)
+    }else {
+      console.log("no encontre stores")
+    }
+    
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error);
+  }
+ 
 }
