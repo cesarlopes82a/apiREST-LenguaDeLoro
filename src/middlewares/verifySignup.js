@@ -1,6 +1,7 @@
 import User from "../models/User";
 import Role from "../models/Role";
 import { ROLES } from "../models/Role";
+import config from "../config";
 
 const checkDuplicateUsernameOrEmail = async (req, res, next) => {
   try {
@@ -15,6 +16,28 @@ const checkDuplicateUsernameOrEmail = async (req, res, next) => {
     if (emailFound)
       return res.status(400).json({ message: "The email already exists" });
       
+    next();
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+};
+const checkDuplicateUsernameInUserDB = async (req, res, next) => {
+  const dbuserid = req.userDB;
+  console.log("dbuserid " +dbuserid)
+  console.log("vengo a verificar username duplicate")
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ message: "Invalid user name" });
+    try {
+      const userFound = await config.globalConnectionStack[dbuserid].user.findOne({ username: username });
+      if (userFound)
+        return res.status(400).json({ message: "The user already exists" });
+    } catch (error) {
+      console.log("Error al realizar consulta en la DB")
+      console.log(error)
+    }
+    
+      console.log("me voy de verificar username duplicate")
     next();
   } catch (error) {
     res.status(500).json({ message: error });
@@ -44,4 +67,4 @@ const checkRolesExisted = async(req, res, next) => {
   }
 };
 
-export { checkDuplicateUsernameOrEmail, checkRolesExisted };
+export { checkDuplicateUsernameOrEmail, checkRolesExisted, checkDuplicateUsernameInUserDB };

@@ -6,11 +6,11 @@ import { authJwt, branchChecks } from "../middlewares";
 
 router.get("/", branchCtrl.getBranches);
 
-router.get("/:branchId", branchCtrl.getBranchById);
+router.get("/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchById);
 
 router.post(
   "/createBranch",
-  [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchExisted],
+  [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchNameExistsInStore],
   branchCtrl.createBranch
 );
   
@@ -25,5 +25,6 @@ router.delete(
   [authJwt.verifyToken, authJwt.isAdminMaster],
   branchCtrl.deleteBranchById
 );
+
 
 export default router;

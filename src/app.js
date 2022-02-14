@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 
 import pkg from "../package.json";
 
-import config from "./config";
+
 
 import productRoutes from "./routes/products.routes";
 import storesRoutes from "./routes/stores.routes"
@@ -21,26 +21,35 @@ import * as userconnection from "./libs/globalConnectionStack";
 import { createRoles, createAdmin} from "./libs/initialSetup";
 import User from "./models/User";
 
+
 const app = express();  //con esto inicio el servidor del backend. aca empieza a estar viva la api
 createRoles();          // lo primero que hago despues de levantar el backend es crear los roles si no exisen. Llamo la fucion desde libs/initialSetup
 createAdmin();
-
 // Settings
 app.set("pkg", pkg);
-app.set("port", process.env.PORT || 4000);
+app.set("port", process.env.PORT || 4011);
 app.set("json spaces", 4);
 
 // Middlewares
 const corsOptions = {
-  // origin: "http://localhost:3000",
+ // Origin: "http://localhost:4200/private",
 };
-app.use(cors(corsOptions));
+// Configurar cabeceras y cors
+app.use((req, res, next) => {
+
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'x-access-token, Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Allow-Request-Method');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  res.header('Allow', 'GET, POST, OPTIONS, PUT, DELETE');
+  next();
+});
+
+//app.use(cors(corsOptions));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 console.log("cargo el app.use")
-
 app.use (async function(req, res, next) {
   //este middleware se ejecuta cada vez que hay un req a la app. aca defino que DB voy a usar y verifico el formato del ID que me llega
   //me fijo si tengo que escribir en la DB global o la del usuario
@@ -48,6 +57,7 @@ app.use (async function(req, res, next) {
   const { dbuserid } = req.body;
 
   if(dbuserid){
+    console.log("soy el middedlware general")
     //verifico el formato del dbuserid
     if (!dbuserid.match(/^[0-9a-fA-F]{24}$/)) return res.status(400).json({ message: "Invalid user ID: " + dbuserid });
 

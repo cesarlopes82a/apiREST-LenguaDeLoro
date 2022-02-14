@@ -19,6 +19,21 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Store",
     }],
+
+
+    tiendas: [{
+      store: { type: Schema.Types.ObjectId,
+        ref: "Store", },
+      branches: [{
+        type: Schema.Types.ObjectId,
+        ref: "Branch",
+      }],
+    }],
+
+    branches: [{
+      type: Schema.Types.ObjectId,
+      ref: "Branch",
+    }],
     roles: [
       {
         type: Schema.Types.ObjectId,

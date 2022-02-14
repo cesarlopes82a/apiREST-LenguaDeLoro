@@ -1,30 +1,41 @@
 import config from "../config";
 import * as storeControler from "./stores.controller";
+import * as userControler from "./user.controller";
+import * as userconnection from "../libs/globalConnectionStack";
 
 //Creamos una nueva tienda 
 export const createBranch = async (req, res) => {
-  const { storeid, branchName, address, dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
+  const dbuserid = req.userDB
+  const userId = req.userId
+  const { storeId, branchName, address } = req.body;  //dbuserid me dice en que db tengo que escribir
   
-  //verifico el formato del storeid
-  if(!storeid) return res.status(401).json({ message: "storeid expected" });
-  if(!String(storeid).match(/^[0-9a-fA-F]{24}$/)) return res.status(400).json({ message: "Invalid storeid: " + storeid });
+  //verifico el formato del storeId
+  if(!storeId) return res.status(401).json({ message: "storeId expected" });
+  if(!String(storeId).match(/^[0-9a-fA-F]{24}$/)) return res.status(400).json({ message: "Invalid storeId: " + storeId });
+
   if(!address) return res.status(401).json({ message: "address expected" });
   if(!branchName) return res.status(401).json({ message: "branchName expected" });
-  
+ 
   //verifico si me llega el dbuserid para saber cual es la DB con la que voy a trabajar
   if(!dbuserid) return res.status(401).json({ message: "dbuserid expected" });
 
   try {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
     const newBranch = await new config.globalConnectionStack[dbuserid].branch({
       branchName,
       address
     });
     if(!newBranch) return res.status(401).json({ message: "Unable to create new branch for user " + dbuserid });
-    const newSavedBranch = await newBranch.save();  //Guardo la store en la DB del usuario
+    const newSavedBranch = await newBranch.save();  //Guardo la branch en la DB del usuario
     if(!newSavedBranch) return res.status(401).json({ message: "Unable to save new branch: " + newBranch.branchName + " for user id" + dbuserid });
 
     //actualizo la store para agregarle la nueva branch que acabo de crear
-    await storeControler.addBranchToStore(storeid, newSavedBranch._id, dbuserid)
+    await storeControler.addBranchToStore(dbuserid, storeId, newSavedBranch._id)
+
+    //avtualizo el user para agregar la nueva branch que acabo de crear
+    console.log("el userId " + userId)
+    await userControler.addBranchToUser(dbuserid, storeId, newSavedBranch._id, userId)
+
     res.status(201).json(newSavedBranch);
   } catch (error) {
     console.log(error);
@@ -33,7 +44,7 @@ export const createBranch = async (req, res) => {
 };
 
 export const getBranches = async (req, res) => {
-  const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
   if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   try {
@@ -58,7 +69,7 @@ export const getBranchById = async (req, res) => {
     return res.status(400).json({ message: "Invalid branch ID: " + branchid });
   } 
 
-  const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
   if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   try {
@@ -82,7 +93,7 @@ export const deleteBranchById = async (req, res) => {
     return res.status(400).json({ message: "Invalid branch ID: " + branchid });
   } 
 
-  const { dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
   if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
 
   try {
@@ -90,9 +101,9 @@ export const deleteBranchById = async (req, res) => {
     if(!branchFound) return res.status(403).json({ message: "Branch " + branchid + " not found" });
 
     //voy a eliminar esta branch del array de branches de la store dueña
-    const storeid = await storeControler.findBranchStoreOwner(branchid,dbuserid)
-    if(storeid){
-      await storeControler.deleteBranchFromStore(storeid, branchid, dbuserid)
+    const storeId = await storeControler.findBranchStoreOwner(branchid,dbuserid)
+    if(storeId){
+      await storeControler.deleteBranchFromStore(storeId, branchid, dbuserid)
     }
 
     res.status(204).json({ message: "Branch: " + branchid + " successfully deleted" });
@@ -105,6 +116,7 @@ export const deleteBranchById = async (req, res) => {
 
 export const updateBranchById = async (req, res) => {
   const  branchid  = req.params.branchId;
+  const dbuserid = req.userDB
   if (!branchid) return res.status(403).json({ message: "No branch ID provided" });
 
   //VERIFICO si tengo un formato valido de id
@@ -112,7 +124,7 @@ export const updateBranchById = async (req, res) => {
     return res.status(400).json({ message: "Invalid branch ID: " + branchid });
   } 
 
-  const { branchName, address, dbuserid } = req.body;  //dbuserid me dice en que db tengo que escribir
+  const { branchName, address } = req.body;  //dbuserid me dice en que db tengo que escribir
   if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
   if (!branchName) return res.status(403).json({ message: "No branchName name provided" });
   if (!address) return res.status(403).json({ message: "No address provided" });

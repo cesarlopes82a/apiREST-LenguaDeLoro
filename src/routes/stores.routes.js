@@ -4,9 +4,9 @@ const router = Router();
 import * as storesCtrl from "../controllers/stores.controller";
 import { authJwt, storeChecks, userChecks } from "../middlewares";
 
-router.get("/", storesCtrl.getStores);
+router.get("/", authJwt.verifyToken, storesCtrl.getStores);
 
-router.get("/:storeId", storesCtrl.getStoreById);
+router.get("/:storeId", authJwt.verifyToken, storesCtrl.getStoreById);
 
 router.post(
   "/createStore",

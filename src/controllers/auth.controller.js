@@ -1,10 +1,7 @@
 // aca vengo cuando hago los pedidos http
 
-import mongoose from "mongoose";
 import User from "../models/User";
 import Role from "../models/Role";
-import Store from "../models/Store";
-import Branch from "../models/Branch";
 import * as userconnection from "../libs/globalConnectionStack";
 
 import jwt from "jsonwebtoken";
@@ -31,11 +28,10 @@ export const signUp = async (req, res) => {
       newUser.roles = [role._id];
     }
     
-
     // Saving the User Object in Mongodb
     const savedUser = await newUser.save();
     // Create a token
-    const token = jwt.sign({ id: savedUser._id }, config.SECRET, {
+    const token = jwt.sign({ id: savedUser._id, email: savedUser.email, userDB: savedUser._id }, config.SECRET, {
       expiresIn: 86400, // 24 hours
     });
 
@@ -60,18 +56,12 @@ export const signUp = async (req, res) => {
         message: "Error creating adminMaster in user db",
       });
     }
-    
-      
-      
-      
-    
 
   } catch (error) {
     console.log(error);
     return res.status(500).json(error);
   }
 };
-
 
 // funciones para LOGUEARSE en la aplicacion
 export const signin = async (req, res) => {
@@ -91,38 +81,38 @@ export const signin = async (req, res) => {
     });
     
     // Request body email can be an email or username
-    const userFound = await User.findOne({ email: email }).populate(  // Con el polulate trae todo el objeto del rol en lugar de solo traer el id
+    const userFound = await User.findOne({ email: email }).populate(  
       "roles"
-    );
-    if (!userFound) return res.status(400).json({ message: "User Not Found" });
+    ); // Con el polulate trae todo el objeto del rol en lugar de solo traer el id
+    if (!userFound) return res.status(400).json({ message: "User " + email + " Not Found in global DB" });
 
-    if(userFound.username != userName || userFound.email != email) return res.status(401).json({
+
+    //aca me voy a fijar si existe el usuario que intenta loguearse en la db del adminMaster
+    await userconnection.checkandcreateUserConnectionStack(userFound._id);
+    const userFoundInDBuser = await config.globalConnectionStack[userFound._id].user.findOne({ username: userName });
+    if(!userFoundInDBuser) return res.status(400).json({ message: "User " + userName + " Not Found in " + email + " database" });
+
+    const matchPassword = await config.globalConnectionStack[userFound._id].user.comparePassword(
+      password,
+      userFoundInDBuser.password
+    );
+    if (!matchPassword) return res.status(401).json({
       token: null,
-      message: "User name / email mismatched",
+      message: "Invalid Password",
     });
-
-    const matchPassword = await User.comparePassword(
-      req.body.password,
-      userFound.password
-    );
-
-    if (!matchPassword)
-      return res.status(401).json({
-        token: null,
-        message: "Invalid Password",
-      });
-
-    const token = jwt.sign({ id: userFound._id }, config.SECRET, {
+    
+    const token = jwt.sign({ id:userFoundInDBuser._id, email: userFound.email, userDB: userFound._id   }, config.SECRET, {
       expiresIn: 86400, // 24 hours
     });
 
+    //esto creo que es al pedo
     const dbuserid = userFound._id
     if(dbuserid){
       if(!userFound.adminMasterDBuser){ 
         await userconnection.createUserDB(dbuserid,["adminMaster"])
       }
       if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
-        await userconnection.createUserConnectionStack(dbuserid);
+        await userconnection.checkandcreateUserConnectionStack(dbuserid);
       }
     }
 
