@@ -1,5 +1,6 @@
 import Role from "../models/Role";
 import User from "../models/User";
+import Category from "../models/Category";
 
 import bcrypt from "bcryptjs";
 
@@ -23,6 +24,8 @@ export const createRoles = async () => {
   }
 };
 
+
+
 // aca creamos un usuario administrador por defecto
 export const createAdmin = async () => {
   // check for an existing admin user
@@ -42,5 +45,7 @@ export const createAdmin = async () => {
     console.log('AdminMaster User Created!')
   }
 };
+
+
 
 

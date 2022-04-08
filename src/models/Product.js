@@ -2,9 +2,10 @@ import { Schema, model } from "mongoose";
 
 const productSchema = new Schema(
   {
-    name: String,
-    category: String,
-    price: Number,
+    productName: String,
+    codigo: String,
+    categoria: { type: Schema.Types.ObjectId,
+                  ref: "Category", },
     imgURL: String,
   },
   {

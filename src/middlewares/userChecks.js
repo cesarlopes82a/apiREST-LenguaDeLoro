@@ -12,7 +12,7 @@ export const findUserinGlobanDB = async (req, res, next) => {
         } 
 
         const userFound = await User.findById(dbuserid);    //busco el user id en base de datos global
-
+        console.log("llego hasta aa")
         if(!userFound) return res.status(403).json({ message: "User id: " + dbuserid + "not found in global DB" });
   
         next();

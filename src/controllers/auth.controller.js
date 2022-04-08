@@ -7,8 +7,10 @@ import * as userconnection from "../libs/globalConnectionStack";
 import jwt from "jsonwebtoken";
 import config from "../config";
 
-// funciones para registrarse en la aplicacion
+// funciones para REGISTRARSE en la aplicacion
 export const signUp = async (req, res) => {
+  console.log("singUp: vamos a registrar un nuevo usuarios")
+  //aca creamos un nuevo usuario en la DB apilenguadeloro el _ID De este usuario va a ser el nombre de su propisa DB
   try {
     // Getting the Request Body
     const { username, email, password, roles } = req.body;
@@ -28,7 +30,7 @@ export const signUp = async (req, res) => {
       newUser.roles = [role._id];
     }
     
-    // Saving the User Object in Mongodb
+    // Saving the User Object in Mongodb apilenguadeloro
     const savedUser = await newUser.save();
     // Create a token
     const token = jwt.sign({ id: savedUser._id, email: savedUser.email, userDB: savedUser._id }, config.SECRET, {
@@ -37,7 +39,12 @@ export const signUp = async (req, res) => {
 
     //Ahora voy a crear la db del usuario
     try {
+      //creo los roles por defecto
+      console.log("Estoy creando una nueva DB para " + email +": "+savedUser._id )
+      console.log("voy a crear los roles por defecto...  userconnection.createRolesDB(savedUser._id)")
       await userconnection.createRolesDB(savedUser._id)
+      console.log("voy a crear las categorias por defecto...  userconnection.createCategoriasDB(savedUser._id)")
+      await userconnection.createCategoriasDB(savedUser._id)
     } catch (error) {
       console.log(error);
       return res.status(401).json({

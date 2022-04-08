@@ -71,6 +71,7 @@ app.use (async function(req, res, next) {
     // el adminMasterDBuser es un indicador de que la DB del usuario está creada. si es null hay que crear la DB del usuario
     if(!userFound.adminMasterDBuser){ 
       await userconnection.createRolesDB(dbuserid);
+      await userconnection.createCategoriasDB(dbuserid);
       await userconnection.createUserDB(dbuserid,["adminMaster"]);
     }
     await userconnection.checkandcreateUserConnectionStack(dbuserid);

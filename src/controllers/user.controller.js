@@ -105,6 +105,21 @@ export const getUserByIdAndPopulateStores = async (req, res) => {
   }
 
 };
+export const getUsersAndPopulate = async (req, res) => {
+  console.log("getUserByIdAndPopulateStores")
+  const dbuserid = req.userDB
+
+  if(!dbuserid) return res.status(401).json({ message: "dbuserid expected" });
+
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+    const usersFound = await config.globalConnectionStack[dbuserid].user.find()
+    .select('-password')
+    .populate("roles")
+    .populate("tiendas.store")
+    .populate("tiendas.branches")
+
+    res.status(200).json(usersFound);
+};
 
 export const updateUserById = async (req, res) => {  //ojo con esto. no enviar el password!!! actualizarlo de otra forma!!
   try {
@@ -276,6 +291,7 @@ export const addUserBranchByID = async (req, res) => {
 
 
 export const addStoreToUserFromRoute = async (req, res) =>{
+  //el from route es porque tomo los parametros que vienen en req.body
   const dbuserid = req.userDB
   const { storeId, userId } = req.body
   const updatedUser = await addStoreToUser(dbuserid, storeId, userId);
@@ -307,11 +323,8 @@ export const getUsersByStoreId = async (req, res)=>{
 }
 
 export const addStoreToUser = async (dbuserid, storeId, userId) => {
-  console.log("dbuserid " + dbuserid)
-  console.log("storeId " + storeId)
-  console.log("userId " + userId)
-  try {
 
+  try {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   
     //Verifico si existe el usuario en la db del user

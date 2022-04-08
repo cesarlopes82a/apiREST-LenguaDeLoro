@@ -4,6 +4,10 @@ import User from "../models/User";
 import Role from "../models/Role";
 import Store from "../models/Store";
 import Branch from "../models/Branch";
+import Category from "../models/Category";
+import Product from "../models/Product";
+import * as categoryCtrl from "../controllers/category.controller";
+
 import { use } from "passport";
 
 
@@ -30,6 +34,8 @@ if(dbuserid){
             config.globalConnectionStack[dbuserid].role = config.globalConnectionStack[dbuserid].db.model('Role',Role.roleSchema);
             config.globalConnectionStack[dbuserid].store = config.globalConnectionStack[dbuserid].db.model('Store',Store.storeSchema);
             config.globalConnectionStack[dbuserid].branch = config.globalConnectionStack[dbuserid].db.model('Branch',Branch.branchSchema);
+            config.globalConnectionStack[dbuserid].category = config.globalConnectionStack[dbuserid].db.model('Category',Category.categorySchema);
+            config.globalConnectionStack[dbuserid].product = config.globalConnectionStack[dbuserid].db.model('Product',Product.productSchema);
 
         }
     }
@@ -137,6 +143,38 @@ export const createRolesDB = async (dbuserid) => {
         ]);
     
         console.log(values);
+      } catch (error) {
+        console.error(error);
+      }
+
+}
+export const createCategoriasDB = async (dbuserid) => {
+    console.log("vengo a crear las categorias por defecto para la db del usuario")
+    try {
+        if(!dbuserid)return res.status(400).json({ message: "dbuserid expected" });
+
+        //verifico el formato del dbuserid
+        if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/))return res.status(400).json({ message: "Invalid user ID: " + dbuserid });
+
+        //Me fijo si ya tengo cargado el stack de coneccion y si no esta cargado, lo cargo    
+        if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+            console.log("creo el stack de coneccion al intentar crear las categorias")
+            checkandcreateUserConnectionStack(dbuserid);
+        }
+        // Count Documents
+        const count = await config.globalConnectionStack[dbuserid].category.estimatedDocumentCount();
+    
+        // check for existing categories
+        if (count > 0) return;
+    
+        // Create default Categoties
+        categoryCtrl.createCategory(dbuserid, "Alimentos secos")
+        categoryCtrl.createCategory(dbuserid, "Fiambres")
+        categoryCtrl.createCategory(dbuserid, "Golocinas")
+        categoryCtrl.createCategory(dbuserid, "Bebidas con alcohol")
+        categoryCtrl.createCategory(dbuserid, "Bebidas sin alcohol")
+        categoryCtrl.createCategory(dbuserid, "Articulos de tocador")
+        categoryCtrl.createCategory(dbuserid, "Articulos de limpieza")
       } catch (error) {
         console.error(error);
       }

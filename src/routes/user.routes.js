@@ -17,6 +17,8 @@ router.post(
 );
 router.get("/", [authJwt.verifyToken], usersCtrl.getUsers);
 
+router.get("/all", [authJwt.verifyToken], usersCtrl.getUsersAndPopulate);
+
 router.get("/userI/:userId", [authJwt.verifyToken], usersCtrl.getUserById);
 
 router.get("/userIdPopulateStores/:userId", [authJwt.verifyToken], usersCtrl.getUserByIdAndPopulateStores);

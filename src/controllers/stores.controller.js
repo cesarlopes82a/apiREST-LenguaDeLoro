@@ -188,6 +188,15 @@ export const addBranchToStore = async (dbuserid, storeId, branchId) => {
       }
     }
     //agrego la branch dentro del array de branches de la store
+
+    console.log("voy a hacer el test de agregar la branch al array de branches")
+    //esto es un test
+    var elementoBranch = {
+      branch: branchId,
+    }
+  //  storeFound.tiendas.branches.push(elementoBranch)
+    ////////////////////////////////////////////////////
+
     storeFound.branches.push(branchId)
     console.log("este esl store found actualizado: " + storeFound)
     try {
