@@ -5,6 +5,7 @@ import Category from "../models/Category";
 import bcrypt from "bcryptjs";
 
 export const createRoles = async () => {
+  console.log("-> createRoles desde libs/initialSetup.js")
   try {
     // Count Documents
     const count = await Role.estimatedDocumentCount();
@@ -15,7 +16,7 @@ export const createRoles = async () => {
     // Create default Roles
     const values = await Promise.all([
       new Role({ roleName: "adminMaster" }).save(),
-      new Role({ roleName: "user" }).save(),
+      //new Role({ roleName: "user" }).save(),
     ]);
 
     console.log(values);
@@ -24,10 +25,9 @@ export const createRoles = async () => {
   }
 };
 
-
-
 // aca creamos un usuario administrador por defecto
 export const createAdmin = async () => {
+  console.log("-> createAdmin desde libs/initialSetup.js")
   // check for an existing admin user
   const user = await User.findOne({ email: "adminmaster@localhost" });
   // get roles _id
@@ -42,7 +42,7 @@ export const createAdmin = async () => {
       adminMasterDBuser: "123456",
       roles: roles.map((role) => role._id),
     });
-    console.log('AdminMaster User Created!')
+    console.log('libs/initialSetup - globalDB AdminMaster User Created!')
   }
 };
 

@@ -15,6 +15,26 @@ router.post(
   ],
   usersCtrl.createUser
 );
+
+router.post(
+  "/createAdminTiendaUser",
+  [
+    authJwt.verifyToken,
+    authJwt.isAdminMaster,
+    verifySignup.checkDuplicateUsernameInUserDB,
+  ],
+  usersCtrl.createAdminTiendaUser
+);
+router.post(
+  "/createVendedorUser",
+  [
+    authJwt.verifyToken,
+    authJwt.isAdminMaster,
+    verifySignup.checkDuplicateUsernameInUserDB,
+  ],
+  usersCtrl.createVendedorUser
+);
+
 router.get("/", [authJwt.verifyToken], usersCtrl.getUsers);
 
 router.get("/all", [authJwt.verifyToken], usersCtrl.getUsersAndPopulate);

@@ -42,7 +42,8 @@ if(dbuserid){
   }
 }
 
-export const createUserDB = async (dbuserid,roles) => {
+export const createAdminMasterUser = async (dbuserid,roles) => {
+    //esta funcion la llamo cuando creo una DB nueva (singup). Creo un adminMaster dentro de la DB dbuserid
     if(!dbuserid)return res.status(400).json({ message: "dbuserid expected" });
 
     if(!roles)return res.status(400).json({ message: "role expected" });
@@ -53,7 +54,7 @@ export const createUserDB = async (dbuserid,roles) => {
     const userFound = await User.findById(dbuserid); //me fijo si existe el usuario en DB Global
     if(!userFound){
       return res.status(401).json({
-        message: "User " + dbuserid + " not found in global DB",
+        message: "(76788)User " + dbuserid + " not found in global DB",
       });
     }
      
@@ -63,8 +64,7 @@ export const createUserDB = async (dbuserid,roles) => {
         await checkandcreateUserConnectionStack(dbuserid);
     }
 
-        
-    // creo el nuevo usuario
+    // creo el nuevo usuario adminMaster
     const newUserDB = new config.globalConnectionStack[dbuserid].user({
         username: userFound.username,
         email: userFound.email,
@@ -137,7 +137,8 @@ export const createRolesDB = async (dbuserid) => {
         // Create default Roles
         const values = await Promise.all([
           new config.globalConnectionStack[dbuserid].role({ roleName: "adminMaster" }).save(),
-          new config.globalConnectionStack[dbuserid].role({ roleName: "admin" }).save(),
+          new config.globalConnectionStack[dbuserid].role({ roleName: "adminGlobal" }).save(),
+          new config.globalConnectionStack[dbuserid].role({ roleName: "adminTienda" }).save(),
           new config.globalConnectionStack[dbuserid].role({ roleName: "vendedor" }).save(),
           
         ]);

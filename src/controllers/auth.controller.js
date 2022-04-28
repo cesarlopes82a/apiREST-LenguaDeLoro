@@ -9,11 +9,12 @@ import config from "../config";
 
 // funciones para REGISTRARSE en la aplicacion
 export const signUp = async (req, res) => {
-  console.log("singUp: vamos a registrar un nuevo usuarios")
+  console.log("singUp: vamos a registrar un nuevo usuario y crear una DB para sus tiendas")
   //aca creamos un nuevo usuario en la DB apilenguadeloro el _ID De este usuario va a ser el nombre de su propisa DB
   try {
     // Getting the Request Body
-    const { username, email, password, roles } = req.body;
+    const { username, email, password } = req.body;
+ 
     // Creating a new User Object
     const newUser = new User({
       username,
@@ -21,19 +22,14 @@ export const signUp = async (req, res) => {
       password: await User.encryptPassword(password),
     });
 
-    // checking for roles. con esto reviso si existe el rol que me estan pasando para crear el usuario
-    if (req.body.roles) {
-      const foundRoles = await Role.find({ roleName: { $in: roles } });
-      newUser.roles = foundRoles.map((role) => role._id);
-    } else { //si no me pasa ningun rol le asigno el rol por defecto
-      const role = await Role.findOne({ roleName: "adminMaster" });
-      newUser.roles = [role._id];
-    }
-    
+    // asignamos el adminMaster Role. es una nueva DB
+    const role = await Role.findOne({ roleName: "adminMaster" });
+    newUser.roles = [role._id];
+ 
     // Saving the User Object in Mongodb apilenguadeloro
     const savedUser = await newUser.save();
     // Create a token
-    const token = jwt.sign({ id: savedUser._id, email: savedUser.email, userDB: savedUser._id }, config.SECRET, {
+    const token = jwt.sign({ id: savedUser._id, email: savedUser.email, userDB: savedUser._id, role: "adminMaster", username: username }, config.SECRET, {
       expiresIn: 86400, // 24 hours
     });
 
@@ -54,7 +50,7 @@ export const signUp = async (req, res) => {
     }
 
     try {
-      await userconnection.createUserDB(savedUser._id,["adminMaster"]);
+      await userconnection.createAdminMasterUser(savedUser._id,["adminMaster"]);
       return res.status(200).json({ token });  // este es el token que tengo que guardar en el frontend para poder acceder a las rutas que lo requieran 
     } catch (error) {
       console.log(error);
@@ -96,7 +92,7 @@ export const signin = async (req, res) => {
 
     //aca me voy a fijar si existe el usuario que intenta loguearse en la db del adminMaster
     await userconnection.checkandcreateUserConnectionStack(userFound._id);
-    const userFoundInDBuser = await config.globalConnectionStack[userFound._id].user.findOne({ username: userName });
+    const userFoundInDBuser = await config.globalConnectionStack[userFound._id].user.findOne({ username: userName }).populate("roles");
     if(!userFoundInDBuser) return res.status(400).json({ message: "User " + userName + " Not Found in " + email + " database" });
 
     const matchPassword = await config.globalConnectionStack[userFound._id].user.comparePassword(
@@ -107,8 +103,8 @@ export const signin = async (req, res) => {
       token: null,
       message: "Invalid Password",
     });
-    
-    const token = jwt.sign({ id:userFoundInDBuser._id, email: userFound.email, userDB: userFound._id   }, config.SECRET, {
+    //console.log("ESTO ES EL ROLE QUE CARGARIA EN EL TOKEN: " + userFoundInDBuser.roles[0].roleName)
+    const token = jwt.sign({ id:userFoundInDBuser._id, email: userFound.email, userDB: userFound._id, role: userFoundInDBuser.roles[0].roleName, username:userName}, config.SECRET, {
       expiresIn: 86400, // 24 hours
     });
 
@@ -116,7 +112,7 @@ export const signin = async (req, res) => {
     const dbuserid = userFound._id
     if(dbuserid){
       if(!userFound.adminMasterDBuser){ 
-        await userconnection.createUserDB(dbuserid,["adminMaster"])
+        await userconnection.createAdminMasterUser(dbuserid,["adminMaster"])
       }
       if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
         await userconnection.checkandcreateUserConnectionStack(dbuserid);

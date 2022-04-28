@@ -6,9 +6,10 @@ import * as userconnection from "../libs/globalConnectionStack";
 export const createStore = async (req, res) => {
   console.log("vengo a crear una nueva tienda")
   const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
-  const userId = req.userId   // es el id del adminMaster en la DB del user
+  const userId = req.userId   // es el id del USER QUE INTENTA CREAR LA STORE en la DB del user
   const { storeName } = req.body;  
   try {
+    //SIEMPRE CREO LA STORE EN LA COLECCION DE STORES PRIMERO despues la atacho al user
     const newStore = await new config.globalConnectionStack[dbuserid].store({
       //save user model to the corresponding stack
       storeName,
@@ -19,18 +20,47 @@ export const createStore = async (req, res) => {
         message: "Unable to create new store for user " + dbuserid,
       });
     }
-    const newSavedStore = await newStore.save();  //Guardo la store en la DB del usuario
+    const newSavedStore = await newStore.save();  //Guardo la store que acabo de crear
     if(!newSavedStore){
       return res.status(401).json({
         message: "Unable to save new store: " + newStore.storeName + " for user id" + dbuserid,
       });
     }
 
-    //tengo que atachar la tienda que acabo de crear al adminMaster user de la dbuser
+    //tengo que atachar la tienda que acabo de crear al adminMaster Y AL USER QUE LA CREó
     const updatedUser = await usersCtrl.addStoreToUser(dbuserid, newSavedStore._id , userId)
     if(!updatedUser) res.status(401).json({ 
       message: "Unable to add new store: " + newStore.storeName + " to user id" + userId + " in " + dbuserid + " database"
     });
+
+   
+    //voy a atachar la tienda que acabo de crear al adminMaster
+    console.log("------------------------------------")
+    const usersFound = await config.globalConnectionStack[dbuserid].user.find()
+    .populate("roles");
+    let salir = false
+    let adminMasterUser = ""
+    for (let i = 0; i < usersFound.length; i++) {
+      if(salir==true) break
+      for (let o = 0; o < usersFound[o].roles.length; o++) {
+        if(usersFound[i].roles[o].roleName === "adminMaster"){
+          console.log(`${usersFound[i]._id}` + " - " + userId)
+          if(usersFound[i]._id == userId){
+            console.log("SOY EL ADMIN MASTER Y NO TENGO QUE HACER nada")
+            salir=true
+            break
+          } else{
+            //esta es la parte importante. encontrar el id del adminMaster para poder atacharle la tienda
+            adminMasterUser=usersFound[i]._id
+            const adminMasterUpdated = await usersCtrl.addStoreToUser(dbuserid, newSavedStore._id , adminMasterUser)
+            if(!adminMasterUpdated) res.status(401).json({ 
+              message: "Unable to add new store: " + newStore.storeName + " to adminMasterUser id" + adminMasterUser + " in " + dbuserid + " database"
+            });
+          }
+        }
+      } 
+    }
+    
 
     res.status(201).json(newSavedStore);
   } catch (error) {
@@ -222,6 +252,89 @@ export const addBranchToStore = async (dbuserid, storeId, branchId) => {
     return res.status(500).json(error);
   }
 }
+
+export const addProductToStore = async (dbuserid, storeId, productId) => {
+  try {
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId);
+    console.log("esta esla storeFound")
+    console.log(storeFound)
+    
+    //agrego la productId dentro del array de products de la store
+    storeFound.products.push(productId)
+    console.log("este esl store found actualizado: " + storeFound)
+
+    //Actualizo la store
+    try {
+      const updatedStore = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+        storeId,
+        storeFound,
+        {
+          new: true,
+        }
+      );
+      if(!updatedStore){
+        console.log( "error al intentar acutalizar updating store" )
+      }
+      console.log("el updatedStoreeeee: " + updatedStore)
+    } catch (error) {
+      console.log("Error al intentar branch.findByIdAndUpdate ")
+      console.log(error);
+      return res.status(500).json(error);
+    }
+    
+/*
+    // me traigo toda la lista de products que tiene agregada la tienda y la guardo dentro del "array products"
+    const products = await config.globalConnectionStack[dbuserid].products.find({ _id: { $in: storeFound.products } });
+    console.log("estos son los products que trajo [dbuserid].products.find({ _id: { $in: storeFound.products } })")
+    console.log(products)
+
+    // recorro el array branches para ver si ya existe la nueva products que quiero cargar
+    if(products.length>0){
+      for (let i = 0; i < products.length; i++) {
+        if (products[i]._id == productId) {
+          //si la product existe, no hago nada, salgo y doy un mensaje de error
+          return message.json({ message: "(353)productId already added to this store" });     
+        }
+      }
+    }
+    //agrego la productId dentro del array de products de la store
+    console.log("voy a hacer el test de agregar la branch al array de branches")
+    //esto es un test
+    var elementoProduct = {
+      product: productId,
+    }
+  //  storeFound.tiendas.branches.push(elementoBranch)
+    ////////////////////////////////////////////////////
+
+    storeFound.products.push(productId)
+    console.log("este esl store found actualizado: " + storeFound)
+    try {
+      const updatedStore = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+        storeId,
+        storeFound,
+        {
+          new: true,
+        }
+      );
+      if(!updatedStore){
+        console.log( "error al intentar acutalizar updating store" )
+      }
+      console.log("el updatedStore: " + updatedStore)
+    } catch (error) {
+      console.log("Error al intentar branch.findByIdAndUpdate ")
+      console.log(error);
+      return res.status(500).json(error);
+    }
+    */
+  } catch (error) {
+    console.log("Error al intentar obtener user store.findByid(storeId) ")
+    console.log(error);
+    return res.status(500).json(error);
+  }
+
+  
+}
+
 
 export const deleteBranchFromStore = async (storeId, branchid, dbuserid) => {
   try {

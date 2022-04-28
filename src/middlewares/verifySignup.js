@@ -1,6 +1,5 @@
 import User from "../models/User";
 import Role from "../models/Role";
-import { ROLES } from "../models/Role";
 import config from "../config";
 
 const checkDuplicateUsernameOrEmail = async (req, res, next) => {
@@ -28,8 +27,7 @@ const checkDuplicateUsernameOrEmail = async (req, res, next) => {
 const checkDuplicateUsernameInUserDB = async (req, res, next) => {
   const dbuserid = req.userDB;
   console.log("dbuserid " +dbuserid)
-  console.log("el req: ")
-  console.log(req)
+ 
   console.log("vengo a verificar username duplicate")
   try {
     const { username } = req.body;

@@ -19,10 +19,9 @@ const userSchema = new Schema(
       ref: "Store",
     }],
 
-
     tiendas: [{
       store: { type: Schema.Types.ObjectId,
-        ref: "Store", },
+        ref: "Store"},
       branches: [{
         type: Schema.Types.ObjectId,
         ref: "Branch",
@@ -42,6 +41,10 @@ const userSchema = new Schema(
     adminMasterDBuser: {
       type: String,
       unique: true,
+    },
+    adminMasterID: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   {

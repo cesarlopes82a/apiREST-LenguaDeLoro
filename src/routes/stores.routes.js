@@ -10,7 +10,7 @@ router.get("/:storeId", authJwt.verifyToken, storesCtrl.getStoreById);
 
 router.post(
   "/createStore",
-  [ authJwt.verifyToken, authJwt.isAdminMaster, storeChecks.checkStoreExisted],
+  [ authJwt.verifyToken, [authJwt.isAdminMaster || authJwt.isAdminGlobal], storeChecks.checkStoreExisted],
   storesCtrl.createStore
 );
   

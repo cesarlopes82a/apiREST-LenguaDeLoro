@@ -7,14 +7,12 @@ import mongoose from "mongoose";
 
 import pkg from "../package.json";
 
-
-
 import productRoutes from "./routes/products.routes";
+import categoriesRoutes from "./routes/categories.routes"
 import storesRoutes from "./routes/stores.routes"
 import branchesRoutes from "./routes/branch.routes"
 import usersRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
-
 
 import * as userconnection from "./libs/globalConnectionStack";
 
@@ -56,8 +54,8 @@ app.use (async function(req, res, next) {
   //la coneccion global esta siempre escuchando(se inicia con el database.js) asi que por ahora no uso la coneccion global desde aca.
   const { dbuserid } = req.body;
 
-  if(dbuserid){
-    console.log("soy el middedlware general")
+  if(dbuserid){ //mmmm me parece que por aca no paso(verificar)
+    console.log("-----------------soy el middedlware general")
     //verifico el formato del dbuserid
     if (!dbuserid.match(/^[0-9a-fA-F]{24}$/)) return res.status(400).json({ message: "Invalid user ID: " + dbuserid });
 
@@ -72,7 +70,7 @@ app.use (async function(req, res, next) {
     if(!userFound.adminMasterDBuser){ 
       await userconnection.createRolesDB(dbuserid);
       await userconnection.createCategoriasDB(dbuserid);
-      await userconnection.createUserDB(dbuserid,["adminMaster"]);
+      await userconnection.createAdminMasterUser(dbuserid,["adminMaster"]);
     }
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   }
@@ -92,10 +90,12 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/api/products", productRoutes);
+app.use("/api/categories", categoriesRoutes);
 app.use("/api/stores",storesRoutes);
 app.use("/api/branches",branchesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/auth", authRoutes);
+
 
 
 

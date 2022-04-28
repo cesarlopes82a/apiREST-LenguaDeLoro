@@ -3,10 +3,10 @@ import { Schema, model } from "mongoose";
 const productSchema = new Schema(
   {
     productName: String,
+    unidadMedida: String,
     codigo: String,
-    categoria: { type: Schema.Types.ObjectId,
+    categoriaRubro: { type: Schema.Types.ObjectId,
                   ref: "Category", },
-    imgURL: String,
   },
   {
     timestamps: true,
@@ -15,3 +15,4 @@ const productSchema = new Schema(
 );
 
 export default model("Product", productSchema);
+

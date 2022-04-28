@@ -9,6 +9,12 @@ const storeSchema = new Schema(
           ref: "Branch",
         },
       ],
+    products:[
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
   },
   {
     versionKey: false,

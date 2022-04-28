@@ -4,12 +4,12 @@ const checkStoreExisted = async(req, res, next) => {
   const dbuserid = req.userDB
   try {
     const { storeName } = req.body;
-    if (!storeName) return res.status(403).json({ message: "No store name provided" });
-    if (!dbuserid) return res.status(409).json({ message: "No dbuserid name provided" });
+    if (!storeName) return res.status(403).json({ message: "(checkStoreExisted)No store name provided" });
+    if (!dbuserid) return res.status(409).json({ message: "(checkStoreExisted)No dbuserid name provided" });
 
     const storeFound = await config.globalConnectionStack[dbuserid].store.findOne({ storeName: storeName });
 
-    if (storeFound) return res.status(400).json({ message: "The store already exists" });
+    if (storeFound) return res.status(400).json({ message: "(checkStoreExisted)The store already exists" });
 
     next();
     

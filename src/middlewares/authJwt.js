@@ -90,13 +90,34 @@ export const isAdminMaster = async (req, res, next) => {
     const roles = await config.globalConnectionStack[req.userDB].role.find({ _id: { $in: user.roles } });
     
     for (let i = 0; i < roles.length; i++) {
-      if (roles[i].roleName === "adminMaster") {
+      if (roles[i].roleName === "adminMaster" || roles[i].roleName === "adminGlobal") {
         next();
         return;
       }
     }
 
     return res.status(403).json({ message: "Require adminMaster Role!" });
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send({ message: error });
+  }
+};
+
+export const isAdminGlobal = async (req, res, next) => {
+  try {
+    await userconnection.checkandcreateUserConnectionStack(req.userDB);
+    const user = await config.globalConnectionStack[req.userDB].user.findById(req.userId);
+    if(!user) return res.status(403).json({ message: "User " + req.userDB + " not found for " + req.userDB + " database" });
+    
+    const roles = await config.globalConnectionStack[req.userDB].role.find({ _id: { $in: user.roles } });
+    
+    for (let i = 0; i < roles.length; i++) {
+      if (roles[i].roleName === "adminGlobal") {
+        next();
+        return;
+      }
+    }
+    return res.status(403).json({ message: "Require adminGlobal Role!" });
   } catch (error) {
     console.log(error)
     return res.status(500).send({ message: error });

@@ -36,6 +36,34 @@ export const createBranch = async (req, res) => {
     console.log("el userId " + userId)
     await userControler.addBranchToUser(dbuserid, storeId, newSavedBranch._id, userId)
 
+    // le agrego la branch al adminMaster
+    console.log("------------------------------------")
+    const usersFound = await config.globalConnectionStack[dbuserid].user.find()
+    .populate("roles");
+    let salir = false
+    let adminMasterUser = ""
+    for (let i = 0; i < usersFound.length; i++) {
+      if(salir==true) break
+      for (let o = 0; o < usersFound[o].roles.length; o++) {
+        if(usersFound[i].roles[o].roleName === "adminMaster"){
+          console.log(`${usersFound[i]._id}` + " - " + userId)
+          if(usersFound[i]._id == userId){
+            console.log("SOY EL ADMIN MASTER Y NO TENGO QUE HACER nada")
+            salir=true
+            break
+          } else{
+            //esta es la parte importante. encontrar el id del adminMaster para poder atacharle la tienda
+            adminMasterUser=usersFound[i]._id
+            const adminMasterUpdated = await userControler.addBranchToUser(dbuserid, storeId, newSavedBranch._id , adminMasterUser)
+            if(!adminMasterUpdated) res.status(401).json({ 
+              message: "(5657)Unable to add new branch: " + newSavedBranch.branchName + " to adminMasterUser id" + adminMasterUser + " in " + dbuserid + " database"
+            });
+          }
+        }
+      } 
+    }
+
+
     res.status(201).json(newSavedBranch);
   } catch (error) {
     console.log(error);
