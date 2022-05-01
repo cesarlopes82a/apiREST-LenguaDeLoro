@@ -19,14 +19,16 @@ const userSchema = new Schema(
       ref: "Store",
     }],
 
-    tiendas: [{
-      store: { type: Schema.Types.ObjectId,
-        ref: "Store"},
-      branches: [{
-        type: Schema.Types.ObjectId,
-        ref: "Branch",
-      }],
-    }],
+    tiendas: [
+      {
+        store: { type: Schema.Types.ObjectId,
+          ref: "Store"},
+        branches: [{
+          type: Schema.Types.ObjectId,
+          ref: "Branch",
+        }],
+      }
+    ],
 
     branches: [{
       type: Schema.Types.ObjectId,

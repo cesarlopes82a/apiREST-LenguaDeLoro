@@ -6,6 +6,7 @@ import Store from "../models/Store";
 import Branch from "../models/Branch";
 import Category from "../models/Category";
 import Product from "../models/Product";
+import Proveedor from "../models/Proveedor";
 import * as categoryCtrl from "../controllers/category.controller";
 
 import { use } from "passport";
@@ -36,6 +37,7 @@ if(dbuserid){
             config.globalConnectionStack[dbuserid].branch = config.globalConnectionStack[dbuserid].db.model('Branch',Branch.branchSchema);
             config.globalConnectionStack[dbuserid].category = config.globalConnectionStack[dbuserid].db.model('Category',Category.categorySchema);
             config.globalConnectionStack[dbuserid].product = config.globalConnectionStack[dbuserid].db.model('Product',Product.productSchema);
+            config.globalConnectionStack[dbuserid].proveedor = config.globalConnectionStack[dbuserid].db.model('Proveedor',Proveedor.productSchema);
 
         }
     }

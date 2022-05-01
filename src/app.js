@@ -13,6 +13,7 @@ import storesRoutes from "./routes/stores.routes"
 import branchesRoutes from "./routes/branch.routes"
 import usersRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
+import proveedorRoutes from "./routes/proveedor.routes";
 
 import * as userconnection from "./libs/globalConnectionStack";
 
@@ -95,6 +96,7 @@ app.use("/api/stores",storesRoutes);
 app.use("/api/branches",branchesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/proveedor", proveedorRoutes);
 
 
 
