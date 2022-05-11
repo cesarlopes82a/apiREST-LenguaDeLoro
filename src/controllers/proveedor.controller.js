@@ -8,7 +8,6 @@ export const createProveedor = async (req, res) => {
 
   const { proveedorName, nroContacto, emailContacto, descripProovedor, categoriaRubro } = req.body; 
   
- 
   try {
     var proveedor = new Proveedor();
     //para recoger los parametros que me llegan por el body de la peticion

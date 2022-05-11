@@ -1,15 +1,25 @@
 import { Schema, model } from "mongoose";
 
-const stockSchema = new Schema(
+const compraSchema = new Schema(
   {
-    producto: {
+    productId: {
         type: Schema.Types.ObjectId,
         ref: "Product",
     },
-    proveedor: {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    proveedorId: {
         type: Schema.Types.ObjectId,
         ref: "Proveedor",
     },
+    branchId: {
+      type: Schema.Types.ObjectId,
+      ref: "Branch",
+  },
+    cantidad: Number,
+    precioCompraUnitario: Number,
     fechaDeCompra: { 
         type: Date, 
         default: Date.now 
@@ -18,7 +28,7 @@ const stockSchema = new Schema(
         type: Date, 
         default: Date.now 
     },
-    precioCompra: Number,
+    comentario: String,
   },
   {
     timestamps: true,
@@ -26,5 +36,5 @@ const stockSchema = new Schema(
   }
 );
 
-export default model("Stock", stockSchema);
+export default model("Compra", compraSchema);
 

@@ -2,6 +2,7 @@ import config from "../config";
 import * as storeControler from "./stores.controller";
 import * as userControler from "./user.controller";
 import * as userconnection from "../libs/globalConnectionStack";
+import { storeChecks } from "../middlewares";
 
 //Creamos una nueva tienda 
 export const createBranch = async (req, res) => {
@@ -176,3 +177,121 @@ export const updateBranchById = async (req, res) => {
     return res.status(500).json(error);
   }
 };
+
+export const registrarNewCompra = async (dbuserid, userId, branchId, compraId) => {
+
+if(!dbuserid){ console.log("ERROR - registrarNewCompra(): dbuserid expected"); return false }
+if(!userId){ console.log("ERROR - registrarNewCompra(): userId expected"); return false }
+if(!branchId){ console.log("ERROR - registrarNewCompra(): branchId expected"); return false }
+if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); return false }
+
+  try {
+    //Verifico si existe el usuario, la sucursal y el registro de la compra en la db del user
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    if(!userFound){ console.log("MENSAJE(3454354): el usuario " + userId + " NO existe en la coleccion de USUARIOS."); return false } 
+
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+    if(!branchFound){ console.log("MENSAJE(3454354): la sucursal " + branchId + " NO existe en la coleccion de USUARIOS."); return false } 
+    
+    const compraFound = await config.globalConnectionStack[dbuserid].compra.findById(compraId)
+    if(!compraFound){ console.log("MENSAJE(3454354): registro de compra " + compraId + " NO existe en la coleccion de USUARIOS."); return false } 
+
+    //voy a verificar si esta compra no ha sido asociada a ninguna otra sucursal
+    const compraAttached = await config.globalConnectionStack[dbuserid].branch.find({compras: compraId})
+   // console.log("MENESAJE: registrarNewCompra() - Esta compra ya ha sido asociada a una sucursal")
+    if(compraAttached.length > 0 ){
+      console.log("MENESAJE: registrarNewCompra() - NO SE REALIZA ASIGNACION")
+    } else{
+      branchFound.compras.push(compraId)
+      try {
+        const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+          branchId,
+          branchFound,
+          {
+            new: true,
+          }
+        )
+        console.log("MENESAJE: registrarNewCompra() - Coleccion de branch actualizada con exito. La compra ha sido asociada a la sucursal!")
+        return updatedBranch
+      } catch (error) {
+        console.log("MENESAJE: registrarNewCompra() - Esta compra ya ha sido asociada a una sucursal")
+        console.log(error)
+        return false
+      }
+    }
+ 
+  } catch (error) {
+    console.log("ERROR(67934): " + error)
+    return false
+  }
+};
+
+export const actualizarStock = async (dbuserid, userId, branchId, productId, cantidad, operacion) => {
+  console.log("MENESAJE: actualizarStock() - vengo a actualizar el stock de mercaderias ")
+
+  if(!dbuserid){ console.log("ERROR - actualizarStock(): dbuserid expected"); return false }
+  if(!userId){ console.log("ERROR - actualizarStock(): userId expected"); return false }
+  if(!branchId){ console.log("ERROR - actualizarStock(): branchId expected"); return false }
+  if(!productId){ console.log("ERROR - actualizarStock(): productId expected"); return false }
+  if(!cantidad){ console.log("ERROR - actualizarStock(): cantidad expected"); return false }
+  if(!operacion){ console.log("ERROR - actualizarStock(): operacion expected"); return false }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+      await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+  try {
+    //Verifico si existe el usuario, la sucursal y el producto en la db del user
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    if(!userFound){ console.log("MENSAJE(7562): el usuario " + userId + " NO existe en la coleccion de USUARIOS."); return false } 
+
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+    if(!branchFound){ console.log("MENSAJE(7562): la sucursal " + branchId + " NO existe en la coleccion de USUARIOS."); return false } 
+    
+    const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId)
+    if(!productFound){ console.log("MENSAJE(7562): el producto " + productId + " NO existe en la coleccion de USUARIOS."); return false } 
+
+    //voy a buscar si el producto ya se encuentra en stock de la branch
+    const productInBranchFound = await config.globalConnectionStack[dbuserid].branch.findOne({ _id: branchId, "stock.product": productId })
+
+    if(operacion == "agregar"){  // tenemos que agregar productos al stock de la sucursal
+      if(!productInBranchFound){ // el producto aún no existe dentro del stock de la sucursal
+        console.log("MENSAJE: el producto aún no existe dentro del stock de la sucursal. agrego un elemento nuevo en stock para esta sucursal")
+        let elementoStock = {
+          product: productId,
+          cantidad: cantidad
+        }
+        branchFound.stock.push(elementoStock)
+        const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+          branchId,
+          branchFound,
+          {
+            new: true,
+          }
+        )
+      }else{ // el producto ya se encuentra en el array de stock de la sucursal solo tengo que sumar/restar cantidad
+        console.log("MENSAJE: el producto existe en la sucursal. modifico la cantidad de este producto para esta sucursal")
+        for (let i = 0; i < productInBranchFound.stock.length; i++) {
+          if(String(productInBranchFound.stock[i].product) == productId){
+            productInBranchFound.stock[i].cantidad = productInBranchFound.stock[i].cantidad + Number(cantidad)
+            break
+          }
+        }
+        const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+          branchId,
+          productInBranchFound,
+          {
+            new: true,
+          }
+        )
+        return updatedBranch;
+      }
+      
+    }
+
+  }
+  catch (error) {
+    console.log("ERROR(35652): " + error)
+    return false
+  }
+  
+}
