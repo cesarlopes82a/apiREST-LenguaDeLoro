@@ -7,7 +7,8 @@ import Branch from "../models/Branch";
 import Category from "../models/Category";
 import Product from "../models/Product";
 import Proveedor from "../models/Proveedor";
-import Compra from "../models/Compra"
+import Compra from "../models/Compra";
+import ListaDePrecios from "../models/ListaDePrecios";
 import * as categoryCtrl from "../controllers/category.controller";
 
 import { use } from "passport";
@@ -40,6 +41,7 @@ if(dbuserid){
             config.globalConnectionStack[dbuserid].product = config.globalConnectionStack[dbuserid].db.model('Product',Product.productSchema);
             config.globalConnectionStack[dbuserid].proveedor = config.globalConnectionStack[dbuserid].db.model('Proveedor',Proveedor.productSchema);
             config.globalConnectionStack[dbuserid].compra = config.globalConnectionStack[dbuserid].db.model('Compra',Compra.compraSchema);
+            config.globalConnectionStack[dbuserid].listadeprecios = config.globalConnectionStack[dbuserid].db.model('ListaDePrecios',ListaDePrecios.compraSchema);
 
         }
     }

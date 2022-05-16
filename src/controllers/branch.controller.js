@@ -24,7 +24,8 @@ export const createBranch = async (req, res) => {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
     const newBranch = await new config.globalConnectionStack[dbuserid].branch({
       branchName,
-      address
+      address,
+      storeId
     });
     if(!newBranch) return res.status(401).json({ message: "Unable to create new branch for user " + dbuserid });
     const newSavedBranch = await newBranch.save();  //Guardo la branch en la DB del usuario

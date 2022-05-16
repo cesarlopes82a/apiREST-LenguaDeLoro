@@ -19,6 +19,7 @@ export const createProduct = async (req, res) => {
     producto.unidadMedida = params.unidadMedida;
     producto.codigo = params.codigo;
     producto.categoriaRubro = params.categoria;
+    producto.storeId = params.storeId
 
 
     if (await codigoCargado(dbuserid,params.codigo)){
@@ -74,6 +75,63 @@ export const getProductById = async (req, res) => {
   res.status(200).json(product);
 };
 
+
+export const getProductosByStoreId = async (req, res) => {
+  const dbuserid = req.userDB;
+  let storeId = req.params.storeId;
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  //tengo que verificar si lo que me pasan como storeId es realmente el storeId o es una branchId para buscar su storeId
+  const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId);
+  console.log("---------las storeFound")
+  console.log(storeFound)
+  if(storeFound){
+    console.log(storeFound)
+  }else{
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(storeId);
+    console.log("---------las branchFound")
+    console.log(branchFound)
+    if(branchFound){
+      storeId=branchFound.storeId
+    }
+  }
+  console.log("MENSAJE: getProductosByStoreId() - " + storeId )
+  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId });
+  res.status(200).json(productsFound);
+};
+
+export const getProductosByStoreIdAndPopulate = async (req, res) => {
+  const dbuserid = req.userDB;
+  let storeId = req.params.storeId;
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  //tengo que verificar si lo que me pasan como storeId es realmente el storeId o es una branchId para buscar su storeId
+  const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId);
+  console.log("---------las storeFound")
+  console.log(storeFound)
+  if(storeFound){
+    console.log(storeFound)
+  }else{
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(storeId);
+    console.log("---------las branchFound")
+    console.log(branchFound)
+    if(branchFound){
+      storeId=branchFound.storeId
+    }
+  }
+  console.log("MENSAJE: getProductosByStoreIdAndPopulate() - " + storeId )
+  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId })
+  .populate("ultimoRegCompra")
+  .populate("categoriaRubro");
+  res.status(200).json(productsFound);
+};
+
 export const getProducts = async (req, res) => {
   
   const dbuserid = req.userDB;
@@ -85,17 +143,24 @@ export const getProducts = async (req, res) => {
   const productsFound = await config.globalConnectionStack[dbuserid].product.find();
   res.status(200).json(productsFound);
 
-/*
-  getTodoslosProductos: function(req,res){
-    Producto.find({}).sort('stock').exec((err, productos)=>{
-        if(err) return res.status(500).send({message:'Error: Ha oducrrido un error al realizar la busqueda '});
-        if(!productos) return res.status(404).send({message:'Error: No hay productos para mostrar'});
-        return res.status(200).send({
-            productos
-        });
-    });
-},*/
 };
+
+
+export const getProductsForLDP = async (dbuserid) => {
+  
+  console.log("MENSAJE: getProductsForLDP() - " + dbuserid )
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  const productsFound = await config.globalConnectionStack[dbuserid].product.find()
+  .populate("categoriaRubro");
+  if(productsFound.length == 0){
+    return false
+  }
+  return productsFound;
+};
+
 
 export const updateProductById = async (req, res) => {
   const updatedProduct = await Product.findByIdAndUpdate(
@@ -106,6 +171,33 @@ export const updateProductById = async (req, res) => {
     }
   );
   res.status(204).json(updatedProduct);
+};
+
+export const actualizarUltimoRegCompra = async(dbuserid, productId, compraId, cantidad) =>{
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+  try {
+    const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId);
+    if(!productFound) return false
+  
+    productFound.ultimoRegCompra = compraId;
+    productFound.stock = productFound.stock + cantidad;
+    
+    const updatedProduct = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
+      productId,
+      productFound,
+      {
+        new: true,
+      }
+    )
+    return updatedProduct; 
+  } catch (error) {
+    console.log("MENSAJE: Ha ocurrido un error al intentar actualzar el producto con el ultimo registro de compra")
+    console.log(error)
+    return false
+  }
+  
 };
 
 export const deleteProductById = async (req, res) => {

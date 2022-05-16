@@ -1,6 +1,7 @@
 import Compra from "../models/Compra";
 import config from "../config";
 import * as branchCtrl from "./branch.controller.js";
+import * as productCtrl from "./products.controller";
 import * as userconnection from "../libs/globalConnectionStack";
 
 export const registrarCompra = async (req, res) => {
@@ -69,8 +70,9 @@ export const registrarCompra = async (req, res) => {
 
         // PASO 1: - FIN DE PASO 1
 
-        // PASO 2: - ASOCIAR EL NUEVO REGISTRO DE COMPRA QUE ACABO DE CREAR A LA SUCURSAL QUE REALIZÓ LA COMPRA
+        
         if(nuevaCompraRegistrada){            
+            // PASO 2: - ASOCIAR EL NUEVO REGISTRO DE COMPRA QUE ACABO DE CREAR A LA SUCURSAL QUE REALIZÓ LA COMPRA
             const asociarCompraBranch = () => {
                 return new Promise((resolve, reject) => {
                     console.log("MENSAJE: asociarCompraBranch() - asociando registro de compra " + nuevaCompraRegistrada._id + " a la sucursal " + params.branchId)
@@ -120,9 +122,8 @@ export const registrarCompra = async (req, res) => {
             })
         
             // PASO 2: - FIN DE PASO 2
-
-            // PASO 2": - VERIFICO SI TENGO QUE HACER UN ROLLBACK
-            if(compraAsociadaSucursal == false){
+            
+            async function deshacerPaso2(){
                 console.log("ERROR(354535): Ha ocurrido un error al intentar asociar el registro de compra al la sucursal. Intentando eliminar registro de compra " + nuevaCompraRegistrada._id + "...")
                 config.globalConnectionStack[dbuserid].compra.findByIdAndDelete(nuevaCompraRegistrada._id, function (err, docs) {
                     if (err){
@@ -135,6 +136,11 @@ export const registrarCompra = async (req, res) => {
                         return res.status(400).json("ERROR(68623): compraAsociadaSucursal=false - La operacion de registro de compra no pudo ser completada!");
                     }
                 });
+            }
+
+            // PASO 2": - VERIFICO SI TENGO QUE HACER UN rolback del paso 2
+            if(compraAsociadaSucursal == false){
+                deshacerPaso2()
             }else{
                 // PASO 3: ACTUALIZO EL STOCK DE MERCADERIAS PARA AGREGAR LOS PRODUCTOS INGRESADOS            
                 console.log("MENSAJE: registrarCompra() - Iniciando proceso de actualizacion de Stock de mercaderias")
@@ -142,19 +148,39 @@ export const registrarCompra = async (req, res) => {
                 .then((response) => {
                     if(response == false){
                         console.log("ERROR(4355): actualizarStock() - Ha ocurrido un error al intentar actualizar el STOCK de mercaderias")
-                        return res.status(400).json("ERROR(4355): actualizarStock() - Ha ocurrido un error al intentar actualizar el STOCK de mercaderias");
-                        //ROLLBACK!!!  tengo qe eliminar el registro de compra y desasociarlo de la branch/sucursal
+    
+                        return res.status(400).json("ERROR(4355): actualizarStock() - Ha ocurrido un error al intentar actualizar el STOCK de mercaderias. No se puede registrar la compra");
+                        //ROLLBACK pendiente!!!  tengo qe eliminar el registro de compra y desasociarlo de la branch/sucursal
                     }else{
                         console.log("MENSAJE: actualizarStock() - El Stock ha sido actualizado con exito!")
-                        return res.status(201).json("SUCCESS!: La nueva compra ha sido registrada con exito!");
+                        //return res.status(201).json("SUCCESS!: La nueva compra ha sido registrada con exito!");
                     }
                 }) 
                 // PASO 3: - FIN DE PASO 3
+            };
 
+            // PASO 4: ASOCIAR EL NUEVO REGISTRO DE COMPRA QUE ACABO DE CREAR A LA PRODUCTO. TENGO QUE ACTUALIZAR EL "ULTIMO REGISTRO DE COMPRA"
+            if(compraAsociadaSucursal == false){
+
+            }else{
+                console.log("MENSAJE: registrarCompra() - Iniciando proceso de actualizacion de Producto - Ultimo Registro de compra")
+                Promise.resolve(productCtrl.actualizarUltimoRegCompra(dbuserid, params.productId, nuevaCompraRegistrada._id, params.cantidad))
+                .then((response) =>{
+                    if(response == false){
+                        console.log("ERROR(2421): actualizarUltimoRegCompra() - Ha ocurrido un error al intentar actualizar el ultimo reg de compras para el producto:  " + params.productId)
+                        return res.status(400).json("ERROR(2421): actualizarUltimoRegCompra() - Ha ocurrido un error al intentar actualizar el ultimo reg de compras para el producto:  " + params.productId);
+                        //ROLLBACK pendiente!!!  tengo qe eliminar el registro de compra y desasociarlo de la branch/sucursal
+                    }else{
+                        console.log("MENSAJE: actualizarUltimoRegCompra() - Ultimo registro de compra actualizado con exito para: " + params.productId)
+                        return res.status(201).json("SUCCESS!: La nueva compra ha sido registrada con exito!");
+                    }
+                })
             }
 
             // PASO 2": - FIN DE PASO 2"
 
+            // PASO
+            
                
 
         }else {

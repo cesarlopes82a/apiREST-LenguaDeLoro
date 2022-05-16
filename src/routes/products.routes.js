@@ -8,6 +8,10 @@ router.get("/", [authJwt.verifyToken], productsCtrl.getProducts);
 
 router.get("/:productId", productsCtrl.getProductById);
 
+router.get("/store/:storeId",[authJwt.verifyToken], productsCtrl.getProductosByStoreId);
+
+router.get("/storep/:storeId",[authJwt.verifyToken], productsCtrl.getProductosByStoreIdAndPopulate);
+
 router.post(
   "/createProducto",
   [authJwt.verifyToken],

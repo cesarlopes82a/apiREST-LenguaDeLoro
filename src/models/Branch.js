@@ -4,6 +4,9 @@ const branchSchema = new Schema(
   {
     branchName: String,
     address: String,
+    storeId: { type: Schema.Types.ObjectId,
+      ref: "Store", 
+    },
     compras:[
       { type: Schema.Types.ObjectId,
       ref: "Compra", },
@@ -13,7 +16,13 @@ const branchSchema = new Schema(
         ref: "Product", },
         cantidad: Number,
       }
-    ]
+    ],
+    listasdeprecios:[{
+        product: { type: Schema.Types.ObjectId,
+        ref: "ListaDePrecios", }
+      }
+    ],
+
 
   },
   {
