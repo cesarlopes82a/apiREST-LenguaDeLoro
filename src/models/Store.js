@@ -15,6 +15,12 @@ const storeSchema = new Schema(
         ref: "Product",
       },
     ],
+    listasdeprecios: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "ListaDePrecios",
+      },
+    ]
   },
   {
     versionKey: false,

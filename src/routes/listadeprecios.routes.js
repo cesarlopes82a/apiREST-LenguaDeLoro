@@ -13,7 +13,7 @@ router.get("/", [authJwt.verifyToken], listadpCtrl.getListasDPsByStoreId);
 router.post(
   "/registrarLDP",
   [authJwt.verifyToken],
-  listadpCtrl.createLDPs
+  listadpCtrl.registrarNuevaLDP
 );
 
 export default router;

@@ -398,3 +398,55 @@ export const findBranchStoreOwner = async (branchid, dbuserid) => {
   }
  
 }
+
+
+
+export const addListadpToStore = async (dbuserid, storeId, listaId) => {
+  console.log("MENSAJE: store.controller - addListadpToStore() - actualizando store para agregar la nueva lista de precios DB: " + dbuserid +" Store: "+ storeId +" LDP: "+listaId)
+  try {
+
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId);
+    console.log(storeFound)
+    
+    // me traigo toda las listas de precios que tiene agregada la store y la guardo dentro del "array listasdp"
+    const listasdp = await config.globalConnectionStack[dbuserid].branch.find({ _id: { $in: storeFound.listasdeprecios } });
+    console.log(listasdp)
+
+    // recorro el array listasdp para ver si ya existe la nueva lista de precios que quiero cargar
+    if(listasdp.length>0){
+      for (let i = 0; i < listasdp.length; i++) {
+        if (listasdp[i]._id == listaId) {
+          //si la listaId existe, no hago nada, salgo y doy un mensaje de error
+          console.log("MENSAJE: listaId " + listaId + " already added to this store")
+          return message.json({ message: "listaId " + listaId + " already added to this store" });     
+        }
+      }
+    }
+
+    //agrego la listaId dentro del array de listas de precios de la store
+    storeFound.listasdeprecios.push(listaId)
+    try {
+      const updatedStore = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+        storeId,
+        storeFound,
+        {
+          new: true,
+        }
+      );
+      if(!updatedStore){
+        console.log("MENSAJE: [dbuserid].store.findByIdAndUpdate - error al intentar acutalizar store" )
+      }
+      console.log("SUCCESS: Store " + storeId + " actualizada con exito. Lista de Precios " + listaId + " successfully added TO STORE.")
+      return updatedStore
+
+    } catch (error) {
+      console.log("ERROR: Error al intentar [dbuserid].store.findByIdAndUpdate ")
+      console.log(error);
+      return false
+    }
+  } catch (error) {
+    console.log("ERROR: Error al intentar obtener STORE [dbuserid].store.findById(storeId)")
+    console.log(error);
+    return false
+  }
+}

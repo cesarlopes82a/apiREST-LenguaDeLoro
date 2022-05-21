@@ -76,7 +76,6 @@ export const registrarCompra = async (req, res) => {
             const asociarCompraBranch = () => {
                 return new Promise((resolve, reject) => {
                     console.log("MENSAJE: asociarCompraBranch() - asociando registro de compra " + nuevaCompraRegistrada._id + " a la sucursal " + params.branchId)
-                    console.log("llamo a branchCtrl.registrarNewCompra <--  " + dbuserid+ " " + params.userId + " " + params.branchId + " " +nuevaCompraRegistrada._id)
                     Promise.resolve(branchCtrl.registrarNewCompra(dbuserid, params.userId, params.branchId, nuevaCompraRegistrada._id))
                     .then((response) => {
                         if(response == false){
