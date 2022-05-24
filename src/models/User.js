@@ -49,6 +49,11 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+    defaultListaDP:{
+      type: Schema.Types.ObjectId,
+      ref: "ListaDePrecios",
+      default: null,
+    }
   },
   {
     timestamps: true,

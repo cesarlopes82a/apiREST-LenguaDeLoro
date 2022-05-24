@@ -4,12 +4,10 @@ const listadepreciosSchema = new Schema(
   {
     listaNombre: String,
     descripcion: String,
-    products: [
+    ldpProducts: [
         {
-            type: Schema.Types.ObjectId,
-            ref: "Product",
-        },
-        {
+            product: { type: Schema.Types.ObjectId,
+              ref: "Product" },
             precioVenta: Number,
         }
     ],

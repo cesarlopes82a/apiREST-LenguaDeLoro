@@ -20,7 +20,12 @@ const storeSchema = new Schema(
         type: Schema.Types.ObjectId,
         ref: "ListaDePrecios",
       },
-    ]
+    ],
+    defaultListaDP:{
+      type: Schema.Types.ObjectId,
+      ref: "ListaDePrecios",
+      default: null,
+    }
   },
   {
     versionKey: false,

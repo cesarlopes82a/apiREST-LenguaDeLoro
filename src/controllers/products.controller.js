@@ -7,6 +7,7 @@ export const createProduct = async (req, res) => {
   console.log("vengo a crear/agregar un nuevo producto")
   const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
   var storeId = req.body.storeId
+  console.log("el sssssttttttooooorreeeeeeID: " + storeId)
   const userId = req.userId   // es el id del adminMaster en la DB del user
   const { productName, unidadMedida, codigo, categoria } = req.body;  
  
@@ -22,7 +23,7 @@ export const createProduct = async (req, res) => {
     producto.storeId = params.storeId
 
 
-    if (await codigoCargado(dbuserid,params.codigo)){
+    if (await codigoCargado(dbuserid,params.codigo, storeId)){
       return res.status(403).json("(6456)Error: el codigo " + params.codigo + " ya existe en la coleccion de productos.");
     }else{ 
       if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
@@ -53,13 +54,16 @@ export const createProduct = async (req, res) => {
   
 };
 
-export const codigoCargado = async (dbuserid, codigo) => {
+export const codigoCargado = async (dbuserid, codigo, storeId) => {
   // me traigo toda la lista de branches que tiene agregada la tienda y la buardo dentro del "array branches"
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   }
   
-  const codigoExistente = await config.globalConnectionStack[dbuserid].product.find({"codigo":codigo});
+  const codigoExistente = await config.globalConnectionStack[dbuserid].product.find({
+    "codigo":codigo,
+    "storeId":storeId
+  });
   console.log(codigoExistente.length)
   if (codigoExistente.length>0){
     return true

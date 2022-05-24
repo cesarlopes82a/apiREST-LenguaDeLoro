@@ -22,8 +22,11 @@ const branchSchema = new Schema(
         ref: "ListaDePrecios", }
       }
     ],
-
-
+    defaultListaDP:{
+      type: Schema.Types.ObjectId,
+      ref: "ListaDePrecios",
+      default: null,
+    }
   },
   {
     versionKey: false,
