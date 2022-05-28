@@ -60,7 +60,8 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
 
   try {  
     const listaFound = await config.globalConnectionStack[dbuserid].listadeprecios.find({storeId:storeId})
-    .populate("products");
+    .populate("ldpProducts.product")
+    .populate("ldpProducts.product.categoriaRubro");
     if(listaFound){   
       console.log("MENSAJE: listas de precios encontradas para " + storeId);
       return res.status(200).json(listaFound)
