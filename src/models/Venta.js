@@ -15,7 +15,7 @@ const ventaSchema = new Schema(
         default: Date.now 
     },
     vtaNumero: { 
-        type: 'number', 
+        type: Number,
         autoIncrement: true 
     },
     productosVendidos: [{
@@ -23,14 +23,26 @@ const ventaSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "Product",
         },
-        precioVta: Number
+        nombre: String,
+        codigo: String,
+        precio: Number,
+        cantidad: Number,
+        rubro: String,
+        total: Number,
     }],
     totalVta: Number,
-    cobroEfectivo: Number,
-    cobroTarjeta: Number,
-    cobroPendiente: Boolean,
-    totalCobroPendiente: Number,
-    comentarioVta: String,
+    montoEfectivo: { 
+      type: Number, 
+      default: 0
+    },
+    montoTarjeta: { 
+      type: Number, 
+      default: 0
+    },
+    comentarioVta: { 
+      type: String, 
+      default: null 
+    },
   },
   {
     timestamps: true,

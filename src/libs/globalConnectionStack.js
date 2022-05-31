@@ -9,6 +9,7 @@ import Product from "../models/Product";
 import Proveedor from "../models/Proveedor";
 import Compra from "../models/Compra";
 import ListaDePrecios from "../models/ListaDePrecios";
+import Venta from "../models/Venta";
 import * as categoryCtrl from "../controllers/category.controller";
 
 import { use } from "passport";
@@ -42,7 +43,7 @@ if(dbuserid){
             config.globalConnectionStack[dbuserid].proveedor = config.globalConnectionStack[dbuserid].db.model('Proveedor',Proveedor.productSchema);
             config.globalConnectionStack[dbuserid].compra = config.globalConnectionStack[dbuserid].db.model('Compra',Compra.compraSchema);
             config.globalConnectionStack[dbuserid].listadeprecios = config.globalConnectionStack[dbuserid].db.model('ListaDePrecios',ListaDePrecios.compraSchema);
-
+            config.globalConnectionStack[dbuserid].venta = config.globalConnectionStack[dbuserid].db.model('Venta',Venta.ventaSchema);
         }
     }
   }

@@ -16,6 +16,7 @@ import authRoutes from "./routes/auth.routes";
 import proveedorRoutes from "./routes/proveedor.routes";
 import comprasRoutes from "./routes/compras.routes"
 import ldpRoutes from "./routes/listadeprecios.routes"
+import ventasRoutes from "./routes/ventas.routes"
 
 import * as userconnection from "./libs/globalConnectionStack";
 
@@ -101,6 +102,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/proveedor", proveedorRoutes);
 app.use("/api/compras", comprasRoutes);
 app.use("/api/ldp", ldpRoutes)
+app.use("/api/ventas", ventasRoutes)
 
 
 

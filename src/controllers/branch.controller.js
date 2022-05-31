@@ -192,10 +192,10 @@ if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); r
     if(!userFound){ console.log("MENSAJE(3454354): el usuario " + userId + " NO existe en la coleccion de USUARIOS."); return false } 
 
     const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
-    if(!branchFound){ console.log("MENSAJE(3454354): la sucursal " + branchId + " NO existe en la coleccion de USUARIOS."); return false } 
+    if(!branchFound){ console.log("MENSAJE(3454354): la sucursal " + branchId + " NO existe en la coleccion de SUCURSALES."); return false } 
     
     const compraFound = await config.globalConnectionStack[dbuserid].compra.findById(compraId)
-    if(!compraFound){ console.log("MENSAJE(3454354): registro de compra " + compraId + " NO existe en la coleccion de USUARIOS."); return false } 
+    if(!compraFound){ console.log("MENSAJE(3454354): registro de compra " + compraId + " NO existe en la coleccion de COMPRAS."); return false } 
 
     //voy a verificar si esta compra no ha sido asociada a ninguna otra sucursal
     const compraAttached = await config.globalConnectionStack[dbuserid].branch.find({compras: compraId})
@@ -226,6 +226,55 @@ if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); r
     return false
   }
 };
+
+export const registrarNewVenta = async (dbuserid, userId, branchId, ventaId) => {
+
+  if(!dbuserid){ console.log("ERROR - registrarNewVenta(): dbuserid expected"); return false }
+  if(!userId){ console.log("ERROR - registrarNewVenta(): userId expected"); return false }
+  if(!branchId){ console.log("ERROR - registrarNewVenta(): branchId expected"); return false }
+  if(!ventaId){ console.log("ERROR - registrarNewVenta(): compraId expected"); return false }
+  
+    try {
+      //Verifico si existe el usuario, la sucursal y el registro de la venta en la db del user
+      const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+      if(!userFound){ console.log("MENSAJE(3454354): el usuario " + userId + " NO existe en la coleccion de USUARIOS."); return false } 
+  
+      const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+      if(!branchFound){ console.log("MENSAJE(3454354): la sucursal " + branchId + " NO existe en la coleccion de sucursales/branches."); return false } 
+      
+      const ventaFound = await config.globalConnectionStack[dbuserid].venta.findById(ventaId)
+      if(!ventaFound){ console.log("MENSAJE(3454354): registro de venta " + ventaId + " NO existe en la coleccion de VENTAS."); return false } 
+  
+      //voy a verificar si esta venta no ha sido asociada a ninguna otra sucursal
+      const ventaAttached = await config.globalConnectionStack[dbuserid].branch.find({compras: ventaId})
+     
+      if(ventaAttached.length > 0 ){
+        console.log("MENESAJE: registrarNewVenta() - NO SE REALIZA ASIGNACION de venta")
+      } else{
+        branchFound.ventas.push(ventaId)
+        try {
+          const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+            branchId,
+            branchFound,
+            {
+              new: true,
+            }
+          )
+          console.log("MENESAJE: registrarNewVenta() - Coleccion de branch actualizada con exito. La compra ha sido asociada a la sucursal!")
+          return updatedBranch
+        } catch (error) {
+          console.log("MENESAJE: registrarNewVenta() - Esta venta ya ha sido asociada a una sucursal")
+          console.log(error)
+          return false
+        }
+      }
+   
+    } catch (error) {
+      console.log("ERROR(67934): " + error)
+      return false
+    }
+  };
+  
 
 export const actualizarStock = async (dbuserid, userId, branchId, productId, cantidad, operacion) => {
   console.log("MENESAJE: actualizarStock() - vengo a actualizar el stock de mercaderias ")
