@@ -298,7 +298,7 @@ export const addStoreToUserFromRoute = async (req, res) =>{
   //el from route es porque tomo los parametros que vienen en req.body
   const dbuserid = req.userDB
   const { storeId, userId } = req.body
-  console.log("voy a llamar a addStoreToUser(dbuserid, storeId, userId) ------------------------")
+  console.log("MENSAJE: addStoreToUserFromRoute() - Asignando StoreId: " + storeId + " al usuarId: " + userId)
   const updatedUser = await addStoreToUser(dbuserid, storeId, userId);
   console.log("vuelvo de addStoreToUser(dbuserid, storeId, userId) ------------------------")
   console.log(updatedUser)
@@ -306,7 +306,20 @@ export const addStoreToUserFromRoute = async (req, res) =>{
     console.log("ERROR(45654): addStoreToUserFromRoute() - Ha ocurrido un error al intentar addStoreToUser(dbuserid, storeId, userId) ")
     res.status(401).json({message: "Unable to add new store: " + storeId + " to user id" + userId + " in " + dbuserid + " database"});
   }else{
-    res.status(204).json(updatedUser);
+    //ahora tengo que asociar todas las branches tambien. asigne solo la store
+    const updatedUserBranchesAdded = await addAllBranchesToUser(dbuserid, storeId, userId)
+    if(!updatedUserBranchesAdded) {
+      //ACA TENGO QUE HACER UN ROLLBACK. YA AGREGUE LA STORE PERO NO PUEDO AGREGAR SUS BRANCHES
+      const updatedUserStoreDeleted = await deleteStoreFromUser(dbuserid, storeId, userId);
+      if(!updatedUserStoreDeleted){
+        console.log("ERROR(23432): addStoreToUserFromRoute() - Ha ocurrido un error al intentar deleteStoreFromUser(dbuserid, storeId, userId) ")
+        res.status(401).json({message: "No es posible deshacer: " + storeId + " added to " + userId + " for " + dbuserid + " database"});  
+      }
+      console.log("ERROR(45654): addStoreToUserFromRoute() - Ha ocurrido un error al intentar addStoreToUser(dbuserid, storeId, userId) ")
+      res.status(401).json({message: "Unable to add branches of storeId: " + storeId + " to user id" + userId + " in " + dbuserid + " database"});
+    }else{
+      res.status(204).json(updatedUserBranchesAdded);
+    }
   }
   
 }
@@ -332,11 +345,45 @@ export const getUsersByStoreId = async (req, res)=>{
   }
 }
 
+export const deleteStoreFromUser = async (dbuserid, storeId, userId) => {
+  console.log("MENSAJE: deleteStoreFromUser() - Eliminar la store from user. Hubo un errrrorrr en el paso anterior")
+  try {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+
+    let userFound = await config.globalConnectionStack[dbuserid].user.findById(userId);
+    if(!userFound){
+      console.log( "ERROR(956): NO se encuenta al usuario " + userId);
+      return false
+    }
+
+    var tiendaQueQuieroEliminar = {store: storeId}
+
+    userFound.tiendas = userFound.tiendas.filter((item)=>{
+      return item.store != tiendaQueQuieroEliminar.store
+    });
+
+    // actualizamos los cambios en la db.
+    console.log("MENSAJE: deleteStoreFromUser() - Eliminar la store from user. actualizando DB")
+    const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+      userId,
+      userFound,
+      {
+        new: true,
+      }
+    )
+    if(!updatedUser){
+      console.log( "ERROR(23432): error al actualizar la DB " + dbuserid);
+      return false 
+    }
+    return true
+  } catch (error) {
+    console.log(error)
+  }
+  
+}
+
 export const addStoreToUser = async (dbuserid, storeId, userId) => {
-  console.log("desde user.controller:addStoreToUser <<---------------------")
-  console.log("dbuserid: " + dbuserid)
-  console.log("storeId: " + storeId)
-  console.log("userId: " + userId)
+  console.log("MENSAJE: addStoreToUser() - iniciando proceso...")
 
   try {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
@@ -348,34 +395,20 @@ export const addStoreToUser = async (dbuserid, storeId, userId) => {
       return false
     }
     console.log("desde user.controller:addStoreToUser --> Encontre el user")
-    //ahora voy a ver si el usuario ya tiene asociada la store
-    const stores = await config.globalConnectionStack[dbuserid].store.find({ _id: { $in: userFound.stores } });
-    if(!stores){
-      console.log( "ERROR(32434): no existe ninguna store en DB " + dbuserid);
-      return false
-    }
-    console.log(stores)
-
-    //recorro el array de stores para ver si ya esta la store q quiero atachar
-    for (let i = 0; i < stores.length; i++) {
-      if (stores[i]._id == storeId) {
-        console.log( "ERROR(56763): la store: " + storeId +" ya fue asignada a este user " + userId +" DB:" + dbuserid);
-        return false 
+    //ahora voy a ver si el usuario ya tiene asociada la store dentro del array de tiendas
+    for (let i = 0; i < userFound.tiendas; i++) {
+      if(String(userFound.tiendas[i].store) == storeId){
+        connsole.log("MENSAJE: La tienda ya existe dentro de la coleccion de tiendas para el user: " +userId)
+        return false
       }
     }
 
-    //la store aun no ha sido asociada al usuario dentro de la coleccion store de la db.
-    //hay que agregarla dentro de user.store y user.tiendas
-    
     // agregamos la storeId dentro de user.tiendas
     var elementoTiendas = {
       store: storeId,
     }
     userFound.tiendas.push(elementoTiendas)
     ////////////////////////////////////////////////////
-
-    // agregamos la storeId dentro de user.stores
-    userFound.stores.push(storeId)
 
     // actualizamos los cambios en la db.
     const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
@@ -397,6 +430,91 @@ export const addStoreToUser = async (dbuserid, storeId, userId) => {
   }
 }
 
+export const addAllBranchesToUser = async(dbuserid, storeId, userId) => {
+  //La tarea de esta funcion es atachar todas las branches de una tienda a un usuario
+  // se implementa de la siguiente manera
+  // PASO 1: verifico que exista el userId y el storeId
+  // PASO 2: Atachar todas las branches dentro del array de tiendas asociado a su store  -> userId.tiendas[x].branches[]
+  // PASO 3: Actualizar la DB
+
+  try {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+
+    console.log("MENSAJE: Iniciando proceso addAllBranchesToUser()...")
+    //PASO 1 --------------- verifico que exista el userId y el storeId
+    console.log("MENSAJE: buscando tienda " + storeId + "...")
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId); 
+    if(!storeFound){
+      console.log( "ERROR(45654): storeId:" + storeId + " no existe en la coleccion de stores");
+      return false
+    }
+    console.log("MENSAJE: store: " +storeId+ " encontrada.")
+    //---------------------------------
+    console.log("MENSAJE: buscando user " + userId + "...")
+    let userFound = await config.globalConnectionStack[dbuserid].user.findById(userId);
+    if(!userFound){
+      console.log( "ERROR(345): NO se encuenta al usuario " + userId);
+      return false
+    }
+    console.log("MENSAJE: user: " +userId+ " encontrado.")
+    //FIN PASO 1------------------------------------------------------
+
+    //PASO 2: Atachar la storeId dentro del array de TIENDAS del userId  -> userId.tiendas[]  
+    //Primer checkeo de store. me fijo si el user tiene algna store atachada DENTRO DEL ARRAY DE TIENDAS
+      console.log("MENSAJE: verificando si el usuario tiene alguna tienda atachada... userFound.tiendas.lengh: " + userFound.tiendas.lengh)
+      if(userFound.stores.length == 0){
+        console.log( "ERROR(2345): el usuario " + userId + " aun no tiene atachada NINGUN " + storeId);
+        return false        
+      }
+      //pasé ok el primer checkeo. el usuario tiene tiendas atachadas. voy a buscar si tiene la que yo necesito para atacharle las branches.
+      console.log("MENSAJE: localizando tienda storeId: " + storeId + " en array de tiendas de userId: " +userId+"...")
+      for (let i = 0; i < userFound.tiendas.length; i++) {
+        console.log("MENSAJE: userFound.tiendas["+i+"].store =? " + storeId )
+        if (String(userFound.tiendas[i].store) == storeId) {
+          console.log("MENSAJE: tienda encontrada en array de tiendas del user")
+          console.log("MENSAJE: verificando branches para userFound.tiendas["+i+"].branches... lenght: " + userFound.tiendas[i].branches.lengh)
+          if(userFound.tiendas[i].branches.length == 0){
+            console.log("MENSAJE: lenght=0  clonando array storeFound.branches.()")
+            //NO TENGO NINGUNA BRANCH CARGADA DENTRO DE LA STORE. CARGO TODAS
+            console.log("storeFound.branches")
+            console.log(storeFound.branches)
+            console.log("userFound.tiendas[i].branches")
+            console.log(userFound.tiendas[i].branches)
+
+            userFound.tiendas[i].branches = storeFound.branches.slice()
+            console.log("dessspues de clonaaaaaaar el ararrrrraaaaaaayyy")
+            console.log(userFound.tiendas[i])
+          }else{
+            console.log("MENSAJE: lenght!=0  actualizar array de tienda[x].branches para usuario userId: " +userId)            
+            console.log("MENSAJE: vaciando array de branches para el userFound.tiendas[" + i + "].... userFound.tiendas[" + i + "].branches.splice(0, userFound.tiendas[" + i + "].branches.lenght)")            
+            userFound.tiendas[i].branches.splice(0, userFound.tiendas[i].branches.lenght)
+            console.log("MENSAJE: clonando array storeFound.tiendas["+i+"].branches.slice()")
+            userFound.tiendas[i].branches = storeFound.branches.slice()            
+          }
+
+          const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+            userId,
+            userFound,
+            {
+              new: true,
+            }
+          )
+          if(!updatedUser){
+            console.log( "ERROR(rtret): error al actualizar la DB " + dbuserid);
+            return false 
+          }
+          return updatedUser
+          //break        
+        }
+      }
+
+
+
+
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 export const addBranchToUser = async (dbuserid, storeId, branchId, userId) => {
   console.log("desde user.controller:addBranchToUser <-------------------------")

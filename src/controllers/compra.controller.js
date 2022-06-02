@@ -224,7 +224,8 @@ export const getComprasByBranchAndPopulateInfo = async (req, res) => {
     const comprasFound = await config.globalConnectionStack[dbuserid].compra.find({branchId: branchid})
     .populate("productId")
     .populate("userId")
-    .populate("proveedorId");
+    .populate("proveedorId")
+    .populate("branchId")
     console.log(" las comprasFound")
     console.log(comprasFound)
     if(!comprasFound){ console.log("MENSAJE(776): No existen compras registradas para la sucursal " + branchId); return false } 

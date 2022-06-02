@@ -57,7 +57,8 @@ export const getProveedores = async (req, res) => {
       await userconnection.checkandcreateUserConnectionStack(dbuserid);
     }
   
-    const proveedoresFound = await config.globalConnectionStack[dbuserid].proveedor.find();
+    const proveedoresFound = await config.globalConnectionStack[dbuserid].proveedor.find()
+    .populate("categoriaRubro");
     res.status(200).json(proveedoresFound);
  
 };
