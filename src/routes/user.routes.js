@@ -74,6 +74,15 @@ router.post(
   ],
   usersCtrl.addBranchToUserFromRoute
 );
+router.post(
+  "/reasignarTiendas",
+  [
+  authJwt.verifyToken,
+  authJwt.isAdminMaster,
+  ],
+  usersCtrl.reasignarTiendasToUser
+
+)
 
 
 export default router;

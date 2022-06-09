@@ -25,7 +25,8 @@ export const createBranch = async (req, res) => {
     const newBranch = await new config.globalConnectionStack[dbuserid].branch({
       branchName,
       address,
-      storeId
+      storeId,
+      createdBy:userId
     });
     if(!newBranch) return res.status(401).json({ message: "Unable to create new branch for user " + dbuserid });
     const newSavedBranch = await newBranch.save();  //Guardo la branch en la DB del usuario
@@ -36,9 +37,10 @@ export const createBranch = async (req, res) => {
 
     //avtualizo el user para agregar la nueva branch que acabo de crear
     console.log("el userId " + userId)
-    await userControler.addBranchToUser(dbuserid, storeId, newSavedBranch._id, userId)
+    await userControler.addBranchToUser(dbuserid, storeId, newSavedBranch._id, userId)   // addBranchToUser agrega tambien al adminMaster tiendas la branch.
 
     // le agrego la branch al adminMaster
+    /*
     console.log("------------------------------------")
     const usersFound = await config.globalConnectionStack[dbuserid].user.find()
     .populate("roles");
@@ -64,6 +66,7 @@ export const createBranch = async (req, res) => {
         }
       } 
     }
+    */
 
 
     res.status(201).json(newSavedBranch);

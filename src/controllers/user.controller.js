@@ -293,6 +293,115 @@ export const addUserBranchByID = async (req, res) => {
   }
 };
 
+export const reasignarTiendasToUser = async (req,res) =>{
+  const dbuserid = req.userDB
+  const { userId, listaTiendasSeleccionadas } = req.body
+  console.log("MENSAJE: reasignarTiendasToUser() - Reasignando tiendas para user: " + userId + " - dbuserid: " + dbuserid + ".")
+  try {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  
+    //Verifico si existe el usuario en la db del user
+    console.log( "MENSAJE: obtniendo datos de usuario " + userId + " en dbuserid: " + dbuserid + "...");
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId);
+    if(!userFound){
+      console.log( "ERROR(1234): NO se encuenta al usuario " + userId + " en dbuserid: " + dbuserid);
+      res.status(401).json({message: "MENSAJE: userId: " + userId + " no encontrado en " + dbuserid + " database"});
+    }
+    console.log( "MENSAJE: usuario " + userId + " encontrado en dbuserid: " + dbuserid + ".");
+
+    //Voy a buscar las tiendas del adminMarter
+    //un usuario NO puede tener tiendas que no tenga el adminMaster. USO las tiendas del adminMaster como referencia.
+    console.log( "MENSAJE: obtniendo datos de adminMaster " + userFound.adminMasterID + " en dbuserid: " + dbuserid + "...");
+    const adminMasterFound = await config.globalConnectionStack[dbuserid].user.findById(userFound.adminMasterID);
+    if(!adminMasterFound){
+      console.log( "ERROR(4352): adminMaster user " + userFound.adminMasterID + " no encontrado en dbuserid: " + dbuserid);
+      res.status(401).json({message: "MENSAJE: adminMaster user " + userFound.adminMasterID + " no encontrado en dbuserid: " + dbuserid});
+    }
+    console.log( "MENSAJE: adminMaster user " + userFound.adminMasterID + " encontrado en dbuserid: " + dbuserid + ".");
+
+    //limpio el array de tiendas del user para realizar la nueva asignacion
+    userFound.tiendas.splice(0, userFound.tiendas.length);
+
+    //recorro el array de tiendas del adminMaster para ir asignando lo que corresponda
+    for (let i = 0; i < adminMasterFound.tiendas.length; i++) {                            //recorro las tienda
+      console.log("Inicia el proceso para esta tienda.............--------------------------------->>>>>>>>>>>>>>>>>")
+      let tiendaStoreId = adminMasterFound.tiendas[i].store._id
+      console.log("tiendaStoreId: " + tiendaStoreId)
+      for (let ii = 0; ii < adminMasterFound.tiendas[i].branches.length; ii++){                  //recorro las branches de esta tienda
+        let tiendaBranchId = adminMasterFound.tiendas[i].branches[ii]._id
+        console.log("tiendaBranchId: " + tiendaBranchId)
+        for (const branch in listaTiendasSeleccionadas) {                           //verifico si esta branch es una de las que tengo que asignar
+          console.log(`MENSAJE: ${branch}: ${listaTiendasSeleccionadas[branch]}`);
+          if(`${listaTiendasSeleccionadas[branch]}` == "true" && `${branch}` == tiendaBranchId){                                     //ENCONTRE UNA STORE QUE TENGO QUE ASIGNAR.
+            console.log("trueeeeeeeeeeeeeeeeeeeeeee tengo que asignar----------------")
+
+            let storeYaAsingadaAlUser = false 
+
+            for (let p = 0; p < userFound.tiendas.length; p++) {                    //Me fijo si ya tengo esta store asignada al user              
+              console.log(userFound.tiendas[p].store)
+              if(userFound.tiendas[p].store == tiendaStoreId){
+                storeYaAsingadaAlUser=true
+                console.log("tengo la store adentrooooooooooooooo-----------------")
+                let branchYaAsingadaAlUser = false
+                for (let q = 0; q < userFound.tiendas[p].branches.length; q++) {                    //Me fijo si ya tengo esta branch asignada al user                  
+                  console.log("--------->>>><<<<-----------")
+                  console.log(userFound.tiendas[p].branches[q])
+                  console.log("--------->>>><<<<-----------")
+                  if(userFound.tiendas[p].branches[q] == tiendaBranchId){
+                    branchYaAsingadaAlUser = true
+                    console.log("tengo la BRANCHHHHH adentrooooooooooooooo-----------------")
+                  }
+                }
+                if(branchYaAsingadaAlUser==false){
+                  console.log("pusssshhhhh de brancheeeeeeeeeee")                  
+                  userFound.tiendas[p].branches.push(tiendaBranchId)           //la store ya esta asignada asi que solo le agrego la branch al array de branches
+                  console.log("MENSAJE: store found for user: " + userId + ". Atachando branch: " + tiendaBranchId + "...")
+                }
+                
+              }
+            }
+
+            if(storeYaAsingadaAlUser==false){                                //la tienda no esta asignada asi que tengo q agregar la store y la branch
+              console.log("MENSAJE: store no encontrada for user: " + userId + ". Atachando store: " + tiendaStoreId + "...")
+              var elementoTiendas = {
+                store: tiendaStoreId,
+                branches:[]
+              }
+              console.log("MENSAJE: Atachando branch: " + tiendaBranchId + " to store: " + tiendaStoreId)
+              console.log("pusssshhhhh de brancheeeeeeeeeee222222222 al elementoTienda")                  
+              elementoTiendas.branches.push(tiendaBranchId)
+              console.log("pusssshhhhh de tiendddddd")                  
+              userFound.tiendas.push(elementoTiendas)              
+            }   
+            break         
+          }
+        }
+      }
+    }
+    ///////////////////////////////////////////////////////////////////////
+    // actualizamos los cambios en la db.
+    console.log("MENSAJE: Acutualizando DB for user: " + userId +"...")
+    const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+      userId,
+      userFound,
+      {
+        new: true,
+      }
+    )
+    if(!updatedUser){
+      console.log( "ERROR(65454): error al actualizar la user: " + userId + " en dbuserid: " + dbuserid);
+      res.status(401).json({message: "ERROR(65454): error al actualizar la user: " + userId + " en dbuserid: " + dbuserid}); 
+    }
+    console.log("MENSAJE: DB successfully updated for user: " + userId +".")
+
+    res.status(204).json(updatedUser);
+
+  } catch (error) {
+    console.log(error)
+  }
+
+}
+
 
 export const addStoreToUserFromRoute = async (req, res) =>{
   //el from route es porque tomo los parametros que vienen en req.body
@@ -461,8 +570,8 @@ export const addAllBranchesToUser = async(dbuserid, storeId, userId) => {
 
     //PASO 2: Atachar la storeId dentro del array de TIENDAS del userId  -> userId.tiendas[]  
     //Primer checkeo de store. me fijo si el user tiene algna store atachada DENTRO DEL ARRAY DE TIENDAS
-      console.log("MENSAJE: verificando si el usuario tiene alguna tienda atachada... userFound.tiendas.lengh: " + userFound.tiendas.lengh)
-      if(userFound.stores.length == 0){
+      console.log("MENSAJE: verificando si el usuario tiene alguna tienda atachada... userFound.tiendas.lengh: " + userFound.tiendas.length)
+      if(userFound.tiendas.length == 0){
         console.log( "ERROR(2345): el usuario " + userId + " aun no tiene atachada NINGUN " + storeId);
         return false        
       }
@@ -518,23 +627,134 @@ export const addAllBranchesToUser = async(dbuserid, storeId, userId) => {
 
 export const addBranchToUser = async (dbuserid, storeId, branchId, userId) => {
   console.log("desde user.controller:addBranchToUser <-------------------------")
-  console.log("dbuserid " + dbuserid)
-  console.log("storeId " + storeId)
-  console.log("branchId " + branchId)
-  console.log("userId " + userId)
-  try {
 
+  try {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   
     //Verifico si existe el usuario en la db del user
-    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId);
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    .populate("roles");;
     console.log(userFound)
     if(!userFound){
       console.log( "ERROR(43655676): NO se encuenta al usuario " + userId);
       return false
     }
-    console.log("desde user.controller:addBranchToUser --> Encontre el user")
-    //ahora voy a ver si el usuario ya tiene asociada la store
+
+    //Verifico si existe el adminMaster user en la db del user
+    if(userFound.roles[0].roleName != "adminMaster"){
+      const adminMasterFound = await config.globalConnectionStack[dbuserid].user.findById(userFound.adminMasterID);
+      if(!adminMasterFound){
+        console.log( "ERROR(23432): NO se encuenta adminMaster: "+ userFound.adminMasterID +" user for this usuario " + userId);
+        return false
+      }
+    }
+
+    //Verifico si existe la store de la branch que me estan pasando
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId); 
+    if(!storeFound){
+      console.log( "ERROR(44565): la storeId: " + storeId + " no existe en la coleccion de stores para dbuserid: " + dbuserid);
+      return false
+    }
+    
+    //Verifico si existe la la branch que me estan pasando
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId); 
+    if(!branchFound){
+      console.log( "ERROR(44565): la branchId: " + branchId + " no existe en la coleccion de BRANCHES para dbuserid: " + dbuserid);
+      return false
+    }
+
+    //Verifico si el usuario ya tiene asociada la store dentro del array de tiendas
+    let storeFoundInUserTiendas = false
+    for (let i = 0; i < userFound.tiendas.length; i++) {
+      console.log("voy a compara la store de la tienda del user con el storeId")
+      console.log(userFound.tiendas[i].store)
+      console.log(storeId)
+      if(userFound.tiendas[i].store == storeId){
+        storeFoundInUserTiendas = true
+        //Verifico si el user ya tiene asociada la branch dentro del array de tiendas
+        for (let p = 0; p < userFound.tiendas[i].branches.length; p++) {
+          if(userFound.tiendas[i].branches[p]._id == branchId){
+            //si pasa esto no tengo que hacer nada. la branch ya esta asociada ok al user
+            console.log( "WARNING(44565): la branchId: " + branchId + " EXISTE en la coleccion de branches asociada a este usuario: " + userId + " en dbuserid: " + dbuserid);
+            return userFound            
+          }
+        }
+        console.log("MENSAJE: Atachando branchId: " + branchId + " al array de tiendas.store: "+storeId+". userId: " + userId + " - dbuserid: " + dbuserid)
+        userFound.tiendas[i].branches.push(branchId)   
+        
+        const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+          userId,
+          userFound,
+          {
+            new: true,
+          }
+        )
+        
+        break
+      }
+    }
+    if(storeFoundInUserTiendas==false){
+      console.log("MENSAJE: storeId: " + storeId + " aún no ha sido atachada a este user: " + userId + " - dbuserid: " + dbuserid)
+      return false
+    }
+
+   
+    ///////////////////////////////////////////////////////////////////
+    //Ahora tengo que atachar la branch al las tiendas del adminMaster
+    if(userFound.roles[0].roleName != "adminMaster"){
+      const adminMasterFound = await config.globalConnectionStack[dbuserid].user.findById(userFound.adminMasterID);
+      if(!adminMasterFound){
+        console.log( "ERROR(23432): NO se encuenta adminMaster: "+ userFound.adminMasterID +" user for this usuario " + userId);
+        return false
+      }
+      console.log("MENSAJE: Actualizando adminMaster tiendas. Atachando nueva branch creada: " + branchId + " - dbuserid: " + dbuserid)
+      //Verifico si el usuario ya tiene asociada la store dentro del array de tiendas
+      let storeFoundInUserTiendas = false
+      for (let i = 0; i < adminMasterFound.tiendas.length; i++) {
+        console.log("voy a compara la store de la tienda del user con el storeId")
+        console.log(adminMasterFound.tiendas[i].store)
+        console.log(storeId)
+        if(adminMasterFound.tiendas[i].store == storeId){
+          storeFoundInUserTiendas = true
+          //Verifico si el user ya tiene asociada la branch dentro del array de tiendas
+          for (let p = 0; p < adminMasterFound.tiendas[i].branches.length; p++) {
+            if(adminMasterFound.tiendas[i].branches[p]._id == branchId){
+              //si pasa esto no tengo que hacer nada. la branch ya esta asociada ok al user
+              console.log( "AVISO(44565): la branchId: " + branchId + " EXISTE en la coleccion de branches asociada al adminMaster: " + userFound.adminMasterID + " - dbuserid: " + dbuserid);
+              return adminMasterFound            
+            }
+          }
+          console.log("MENSAJE: Atachando branchId: " + branchId + " al array de tiendas.store: "+storeId+". adminMaster: " + userFound.adminMasterID  + " - dbuserid: " + dbuserid)
+          adminMasterFound.tiendas[i].branches.push(branchId)  
+          
+          const updatedAdminMaster = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+            userFound.adminMasterID,
+            adminMasterFound,
+            {
+              new: true,
+            }
+          )
+
+          break
+        }
+      }
+      if(storeFoundInUserTiendas==false){
+        //TENGO QUE HACER UN ROLLBACK ACA. CREE LA branch Y TAMBIEN LA ASOCIÉ AL USER. no puedo asociarla al adminMaster xq no existe la store
+        console.log("rollback pendiente!!!!!!!!!---------------fgfhgfhjg--------------------")
+        console.log("ERROR: storeId: " + storeId + " aún no ha sido atachada al adminMaster: " + userFound.adminMasterID + " - dbuserid: " + dbuserid)
+        return false
+      }
+    }
+
+    ///////////////////guardoooooo////////////////////////
+    
+
+    
+
+
+
+/*
+
     const stores = await config.globalConnectionStack[dbuserid].store.find({ _id: { $in: userFound.stores } }); 
     if(!stores){
       console.log( "ERROR(43655676): el usuario " + userId + " aun no tiene atachada la store " + storeId);
@@ -596,6 +816,7 @@ export const addBranchToUser = async (dbuserid, storeId, branchId, userId) => {
         return false
       }
  
+      */
     console.log("me voy de user.controller:addBranchToUser  <----------------")
   } catch (error) {
     console.log(error)

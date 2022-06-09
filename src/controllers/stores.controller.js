@@ -14,6 +14,7 @@ export const createStore = async (req, res) => {
       //save user model to the corresponding stack
       storeName,
       branches: [],
+      createdBy:userId,
     });
     if(!newStore){
       return res.status(401).json({
@@ -28,13 +29,46 @@ export const createStore = async (req, res) => {
     }
 
     //tengo que atachar la tienda que acabo de crear al adminMaster Y AL USER QUE LA CREó
+    //ATACHO LA store DENTRO DE las tiendas del USER
     const updatedUser = await usersCtrl.addStoreToUser(dbuserid, newSavedStore._id , userId)
     if(!updatedUser) res.status(401).json({ 
       message: "Unable to add new store: " + newStore.storeName + " to user id" + userId + " in " + dbuserid + " database"
     });
 
    
+
     //voy a atachar la tienda que acabo de crear al adminMaster
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    .populate("roles");
+    if(!userFound){
+      //TENGO QUE HACER UN ROLLBACK ACA. CREE LA STORE Y TAMBIEN LA ASOCIÉ AL USER
+      console.log("rollback pendiente!!!!!!!!!-----------------------------------")
+      res.status(401).json({ 
+        message: "MENSAJE: Algo salió mal! no puedo identificar el usuario que hace el pedido. userId: " + userId
+      });
+    }
+
+    //Si soy el admin master no necesito agregarle la tienda al adminMaster xq ya soy yo y y lo hice
+
+    if(userFound.roles[0].roleName != "adminMaster"){
+      const adminMasterFound = await config.globalConnectionStack[dbuserid].user.findById(userFound.adminMasterID)
+      if(!adminMasterFound){
+        //TENGO QUE HACER UN ROLLBACK ACA. CREE LA STORE Y TAMBIEN LA ASOCIÉ AL USER
+        console.log("rollback pendiente!!!!!!!!!-----------------------------------")
+        res.status(401).json({ 
+          message: "MENSAJE: Algo salió mal! no puedo ENCONTRAR el adminMaster para este usuario. userId: " + userId
+        });
+      }
+
+      const updatedUser = await usersCtrl.addStoreToUser(dbuserid, newSavedStore._id , userFound.adminMasterID)
+      if(!updatedUser) res.status(401).json({ 
+        message: "Unable to add new store: " + newStore.storeName + " to user id" + userId + " in " + dbuserid + " database"
+      });
+    }
+
+    
+
+/*
     console.log("------------------------------------")
     const usersFound = await config.globalConnectionStack[dbuserid].user.find()
     .populate("roles");
@@ -60,6 +94,7 @@ export const createStore = async (req, res) => {
         }
       } 
     }
+    */
     
 
     res.status(201).json(newSavedStore);
@@ -218,7 +253,7 @@ export const addBranchToStore = async (dbuserid, storeId, branchId) => {
       }
     }
     //agrego la branch dentro del array de branches de la store
-
+/*
     console.log("voy a hacer el test de agregar la branch al array de branches")
     //esto es un test
     var elementoBranch = {
@@ -226,7 +261,7 @@ export const addBranchToStore = async (dbuserid, storeId, branchId) => {
     }
   //  storeFound.tiendas.branches.push(elementoBranch)
     ////////////////////////////////////////////////////
-
+*/
     storeFound.branches.push(branchId)
     console.log("este esl store found actualizado: " + storeFound)
     try {

@@ -25,6 +25,11 @@ const storeSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "ListaDePrecios",
       default: null,
+    },
+    createdBy:{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     }
   },
   {
