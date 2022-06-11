@@ -42,7 +42,7 @@ export const createStore = async (req, res) => {
     .populate("roles");
     if(!userFound){
       //TENGO QUE HACER UN ROLLBACK ACA. CREE LA STORE Y TAMBIEN LA ASOCIÉ AL USER
-      console.log("rollback pendiente!!!!!!!!!-----------------------------------")
+      console.log("rollback pendiente!!!!!!!!!----8989------------------------")
       res.status(401).json({ 
         message: "MENSAJE: Algo salió mal! no puedo identificar el usuario que hace el pedido. userId: " + userId
       });
@@ -54,7 +54,7 @@ export const createStore = async (req, res) => {
       const adminMasterFound = await config.globalConnectionStack[dbuserid].user.findById(userFound.adminMasterID)
       if(!adminMasterFound){
         //TENGO QUE HACER UN ROLLBACK ACA. CREE LA STORE Y TAMBIEN LA ASOCIÉ AL USER
-        console.log("rollback pendiente!!!!!!!!!-----------------------------------")
+        console.log("rollback pendiente!!!!!!!!!----------54564--------------------")
         res.status(401).json({ 
           message: "MENSAJE: Algo salió mal! no puedo ENCONTRAR el adminMaster para este usuario. userId: " + userId
         });
