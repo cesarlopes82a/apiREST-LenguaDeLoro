@@ -194,6 +194,81 @@ export const registrarCompra = async (req, res) => {
         return res.status(403).json("registrarCompra() - ERROR(234354): Hubo un error al intentar registrar nueva compra");
     }
 };
+export const eliminarRegistroCompra = async (req, res) => {
+    //que voy a hacer acá?
+    //tengo que eliminar el registro de compra de la coleccion de compras
+    //--- Solo voy a poder eliminar el ultimo registro de compra asociado a un producto. No puedo eliminar una compra si hay reg de compras posteriores para ese mismo producto
+    //tengo que desatachar la compra del user que habia realizado la compra
+    //tengo que actualizar el ultimo degistro de compra del producto asociado a la compra que estoy eliminando
+    console.log("MENSAJE: eliminarRegistrarCompra() - Iniciando proceso de eliminacion de registro de compra")
+    const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+   
+    const compraId = req.params.compraId
+
+    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+        await userconnection.checkandcreateUserConnectionStack(dbuserid);
+    }
+
+    //Verifico si existe el registro de compra que me piden eliminar
+    const compraFound = await config.globalConnectionStack[dbuserid].compra.findById(compraId)
+    if(!compraFound) return res.status(403).json("(4565)ERROR: no se puede localizar compraId: " + compraId + " para dbuserid: " + dbuserid);
+
+    //Localizo todas la compras de este producto
+    const comprasFound = await config.globalConnectionStack[dbuserid].compra.find({"productId":compraFound.productId})
+    if(!comprasFound) return res.status(403).json("(4565)ERROR: no se puede localizar compraId: " + compraId + " para dbuserid: " + dbuserid);    
+
+    //localizo el producto relacionado a la compra para poder actualizar el "ultimoRegCompra" y el "stock"
+    const productFound = await config.globalConnectionStack[dbuserid].product.findById(compraFound.productId)
+    if(!productFound) return res.status(403).json("(2345)Error: el producto " + compraFound.productId + " NO existe en la coleccion de PRODUCTOS para dbuserid: " + dbuserid);
+
+    //verifico que el registro que estoy intentando eliminar sea el ultimo registro de compra para el producto asociado.
+    if(comprasFound.length > 1){ //existe mas de un registro de compra de este producto
+        if(String(comprasFound[comprasFound.length - 1]._id) != String(compraFound._id)){  //verifico si la compra que me pasan es el ultimo registro de compra para este producto
+            console.log("(4565)ERROR: No se puede eliminar! - El reg de compra " + compraId + " No es el ultimo registro de compra del produto " + compraFound.productId)
+            return res.status(424).json("(4565)ERROR: No se puede eliminar! - El reg de compra " + compraId + " No es el ultimo registro de compra del produto " + compraFound.productId);
+        }else{
+            productFound.ultimoRegCompra = comprasFound[comprasFound.length - 2]._id
+            productFound.stock = productFound.stock - compraFound.cantidad
+        }
+    }else{
+        productFound.ultimoRegCompra = null
+        productFound.stock = null
+    }
+
+    //actualizo los registros del producto asociado
+    try {
+        console.log("MENSAJE: Actualizando registro de producto productId: " + productFound._id)
+        const productUpdated = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
+            productFound._id,
+            productFound,
+            {
+                new: true,
+            }
+        )
+       if(productUpdated){
+        console.log("MENSAJE: Registro de producto productId: " + productFound._id + " actualizado exitosamente!!")        
+       }
+    } catch (error) {
+        console.log(error)
+        console.log("ERROR: No es posible eliminar compra. No se pudo actualiza registro de producto " + productFound._id + "! algo salió mal al intentar eliminar actualizar el registro de producto asociado a la compra: " + compraId)
+        return res.status(500).json("ERROR: No es posible eliminar compra. No se pudo actualiza registro de producto " + productFound._id + "! algo salió mal al intentar eliminar actualizar el registro de producto asociado a la compra: " + compraId)
+    }
+
+    //Elimino el registro de compra 
+    console.log("MENSAJE: Eliminado registro de compra " + compraId + "... dbuserid: " + dbuserid)
+    try {
+        const compraDeleted = await config.globalConnectionStack[dbuserid].compra.findByIdAndDelete(compraId)
+        if(compraDeleted) console.log("MENSAJE: Registro de compra " + compraId + " eliminado con exito!")
+
+    } catch (error) {
+        console.log("ERROR: No se pudo eliminar registro! algo salió mal al intentar eliminar el registro de compra " + compraId + " para dbuserid: " + dbuserid)
+        return res.status(500).json("(234356)ERROR: No se pudo eliminar registro! algo salió mal al intentar eliminar el registro de compra " + compraId + " para dbuserid: " + dbuserid);
+    }
+    
+
+    return res.status(202).json("MENSAJE: Proceso de eliminacion de compra finalizado exitosamente!!");
+ 
+};
 export const getCompras = async (req, res) => {
     
     const dbuserid = req.userDB;

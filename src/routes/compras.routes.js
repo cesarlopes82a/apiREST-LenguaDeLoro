@@ -16,4 +16,10 @@ router.post(
   compraCtrl.registrarCompra
 );
 
+router.delete(
+  "/eliminarRegistroCompra/:compraId",
+  [authJwt.verifyToken],
+  compraCtrl.eliminarRegistroCompra
+);
+
 export default router;
