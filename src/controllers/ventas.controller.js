@@ -131,8 +131,34 @@ export const registrarVenta = async (req, res) => {
             if(compraAsociadaSucursal == false){
                 deshacerPaso2()
             }else{
-                return res.status(201).json("SUCCESS!: La nueva VENTA ha sido registrada con exito!");
+
+                //return res.status(201).json("SUCCESS!: La nueva VENTA ha sido registrada con exito!");
             };
+            // PASO 3: Actualizar stock de productos vendidos
+            //VEEEERRRR EL ROLBACK!!!!
+            for (let i = 0; i < registroVenta.productosVendidos.length; i++) {
+                const index = branchFound.stock.findIndex(object => {
+                    return String(object.product) == String(registroVenta.productosVendidos[i].productId);
+                  });
+                console.log(branchFound.stock[index])
+                branchFound.stock[index].cantidad = branchFound.stock[index].cantidad - registroVenta.productosVendidos[i].cantidad
+            }
+            try {
+                const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+                branchFound._id,
+                branchFound,
+                    {
+                    new: true,
+                    }
+                );
+                return res.status(201).json("SUCCESS!: La nueva VENTA ha sido registrada con exito!");    
+            } catch (error) {
+                console.log("registrarVenta() - ERROR(234): Hubo un error al intentar actualizar el stock!")
+                console.log(error)
+                return res.status(403).json("registrarVenta() - ERROR(234): Hubo un error al intentar actualizar el stock!");        
+            }
+            
+
         }
 
         

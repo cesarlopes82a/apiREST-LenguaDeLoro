@@ -19,7 +19,7 @@ const ventaSchema = new Schema(
         autoIncrement: true 
     },
     productosVendidos: [{
-        product:{
+        productId:{
             type: Schema.Types.ObjectId,
             ref: "Product",
         },

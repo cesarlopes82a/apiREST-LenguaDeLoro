@@ -8,6 +8,8 @@ router.get("/", branchCtrl.getBranches);
 
 router.get("/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchById);
 
+router.get("/bystoreId/:storeId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchesByStoreId);
+
 router.post(
   "/createBranch",
   [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchNameExistsInStore],

@@ -143,7 +143,7 @@ export const registrarCompra = async (req, res) => {
             }else{
                 // PASO 3: ACTUALIZO EL STOCK DE MERCADERIAS PARA AGREGAR LOS PRODUCTOS INGRESADOS            
                 console.log("MENSAJE: registrarCompra() - Iniciando proceso de actualizacion de Stock de mercaderias")
-                Promise.resolve(branchCtrl.actualizarStock(dbuserid, params.userId, params.branchId, params.productId, params.cantidad, "agregar"))
+                Promise.resolve(branchCtrl.actualizarStock(dbuserid, params.userId, params.branchId, params.productId, nuevaCompraRegistrada._id , nuevaCompraRegistrada.fechaDeCompra, nuevaCompraRegistrada.precioCompraUnitario, params.cantidad, "agregar"))
                 .then((response) => {
                     if(response == false){
                         console.log("ERROR(4355): actualizarStock() - Ha ocurrido un error al intentar actualizar el STOCK de mercaderias")
@@ -152,18 +152,19 @@ export const registrarCompra = async (req, res) => {
                         //ROLLBACK pendiente!!!  tengo qe eliminar el registro de compra y desasociarlo de la branch/sucursal
                     }else{
                         console.log("MENSAJE: actualizarStock() - El Stock ha sido actualizado con exito!")
-                        //return res.status(201).json("SUCCESS!: La nueva compra ha sido registrada con exito!");
+                        return res.status(201).json("SUCCESS!: La nueva compra ha sido registrada con exito!");
                     }
                 }) 
                 // PASO 3: - FIN DE PASO 3
             };
 
-            // PASO 4: ASOCIAR EL NUEVO REGISTRO DE COMPRA QUE ACABO DE CREAR A LA PRODUCTO. TENGO QUE ACTUALIZAR EL "ULTIMO REGISTRO DE COMPRA"
+            /*
+            // PASO 4: ASOCIAR EL NUEVO REGISTRO DE COMPRA QUE ACABO DE CREAR AL PRODUCTO. TENGO QUE ACTUALIZAR EL "ULTIMO REGISTRO DE COMPRA"
             if(compraAsociadaSucursal == false){
 
             }else{
                 console.log("MENSAJE: registrarCompra() - Iniciando proceso de actualizacion de Producto - Ultimo Registro de compra")
-                Promise.resolve(productCtrl.actualizarUltimoRegCompra(dbuserid, params.productId, nuevaCompraRegistrada._id, params.cantidad))
+                Promise.resolve(branchCtrl.actualizarUltimoRegCompraAndStock(dbuserid, params.branchId, params.productId, nuevaCompraRegistrada._id, params.cantidad))
                 .then((response) =>{
                     if(response == false){
                         console.log("ERROR(2421): actualizarUltimoRegCompra() - Ha ocurrido un error al intentar actualizar el ultimo reg de compras para el producto:  " + params.productId)
@@ -175,13 +176,9 @@ export const registrarCompra = async (req, res) => {
                     }
                 })
             }
+            */
 
             // PASO 2": - FIN DE PASO 2"
-
-            // PASO
-            
-               
-
         }else {
             console.log("ERROR: Paso 2")
         }
@@ -215,9 +212,43 @@ export const eliminarRegistroCompra = async (req, res) => {
 
     //Localizo todas la compras de este producto
     const comprasFound = await config.globalConnectionStack[dbuserid].compra.find({"productId":compraFound.productId})
-    if(!comprasFound) return res.status(403).json("(4565)ERROR: no se puede localizar compraId: " + compraId + " para dbuserid: " + dbuserid);    
+    if(!comprasFound) return res.status(403).json("(4565)ERROR: no se puede localizar compraId: " + compraId + " para dbuserid: " + dbuserid);
+    
+    //Localizo la branch a la que esta atachada la compra
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(compraFound.branchId)
+    if(!branchFound) return res.status(403).json("(4565)ERROR: no se puede localizar la branchId: " + compraFound.branchId + " asociada a esta compraId: " + compraId + " para dbuserid: " + dbuserid);
 
-    //localizo el producto relacionado a la compra para poder actualizar el "ultimoRegCompra" y el "stock"
+    //Verifico si la compra está atachada a la branch realmente
+    let indexCompraIdFoundInBranch = false
+    for (let i = 0; i < branchFound.compras.length; i++) {
+        console.log(branchFound.compras[i]._id)
+        if(branchFound.compras[i]._id == compraId){
+            indexCompraIdFoundInBranch = i
+        }
+    };
+
+    //Verificar si el producto existe dentro del array de stock de la branch
+    let indexProductIdFoundInBranchStock = false
+    const index = branchFound.stock.findIndex(object => {
+        console.log(object)
+        return String(object.product) == String(compraFound.productId);
+      });
+    if(index >= 0){
+        //Tengo que asegurarme de no dejar en negativo el stock del producto
+        //puede darse el caso de que haya hecho una venta despues haber realizado la compra de este producto que quiero eliminar
+        console.log("la resssstaaaa")
+        console.log(branchFound.stock[index].cantidad - compraFound.cantidad)
+        if(branchFound.stock[index].cantidad - compraFound.cantidad < 0){
+            return res.status(403).json("(4565)ERROR: Eliminar esta compra: " + compraId + ". La cantida de productos relacionados excede el stock del producto asociado. - dbuserid:"+ dbuserid);
+        } else{
+            console.log("seteeeooooooooooooooooooooooooooo")
+            indexProductIdFoundInBranchStock = index
+        }
+    }else {
+        return res.status(403).json("(4565)ERROR: Inconsistencia - Eliminar esta compra: " + compraId + ". El producto no esta asociado al stock de la sucursal:"+branchFound._id+". - dbuserid:"+ dbuserid);
+    }
+
+    //localizo el producto relacionado a la compra
     const productFound = await config.globalConnectionStack[dbuserid].product.findById(compraFound.productId)
     if(!productFound) return res.status(403).json("(2345)Error: el producto " + compraFound.productId + " NO existe en la coleccion de PRODUCTOS para dbuserid: " + dbuserid);
 
@@ -227,32 +258,49 @@ export const eliminarRegistroCompra = async (req, res) => {
             console.log("(4565)ERROR: No se puede eliminar! - El reg de compra " + compraId + " No es el ultimo registro de compra del produto " + compraFound.productId)
             return res.status(424).json("(4565)ERROR: No se puede eliminar! - El reg de compra " + compraId + " No es el ultimo registro de compra del produto " + compraFound.productId);
         }else{
-            productFound.ultimoRegCompra = comprasFound[comprasFound.length - 2]._id
-            productFound.stock = productFound.stock - compraFound.cantidad
+            //actualizo el stock
+            console.log("el indexProductIdFoundInBranchStock: " + indexProductIdFoundInBranchStock)
+            branchFound.stock[indexProductIdFoundInBranchStock].ultimoRegCompra = comprasFound[comprasFound.length - 2]._id
+            branchFound.stock[indexProductIdFoundInBranchStock].cantidad = branchFound.stock[indexProductIdFoundInBranchStock].cantidad - compraFound.cantidad
+            branchFound.stock[indexProductIdFoundInBranchStock].precioUnitUltCompra = comprasFound[comprasFound.length - 2].precioCompraUnitario
+            branchFound.stock[indexProductIdFoundInBranchStock].fechaUltimaCompra = comprasFound[comprasFound.length - 2].fechaUltimaCompra
+            //desvinculo la compraId de la branch.compras
+            console.log("MENSAJE: Desatachando compra: " + compraId + " de branch: " + branchFound._id +". index " + indexCompraIdFoundInBranch + " en branch.compras array. - dbuserid: " + dbuserid)
+            branchFound.compras.splice(indexCompraIdFoundInBranch, 1)
+
         }
     }else{
-        productFound.ultimoRegCompra = null
-        productFound.stock = null
+        //actualizo el stock
+        console.log("el indexProductIdFoundInBranchStock: " + indexProductIdFoundInBranchStock)
+        branchFound.stock[indexProductIdFoundInBranchStock].ultimoRegCompra = "-"
+        branchFound.stock[indexProductIdFoundInBranchStock].cantidad = 0
+        branchFound.stock[indexProductIdFoundInBranchStock].precioUnitUltCompra = 0
+        branchFound.stock[indexProductIdFoundInBranchStock].fechaUltimaCompra = "-"
+        //desvinculo la compraId de la branch.compras
+        console.log("MENSAJE: Desatachando compra: " + compraId + " de branch: " + branchFound._id +". index " + indexCompraIdFoundInBranch + " en branch.compras array. - dbuserid: " + dbuserid)
+        branchFound.compras.splice(indexCompraIdFoundInBranch, 1)
     }
 
-    //actualizo los registros del producto asociado
+    //actualizo el stock del producto en la branch
     try {
-        console.log("MENSAJE: Actualizando registro de producto productId: " + productFound._id)
-        const productUpdated = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
-            productFound._id,
-            productFound,
+        console.log("MENSAJE: Actualizando registro de producto productId: " + compraFound.productId)
+        const branchUpdated = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+            branchFound._id,
+            branchFound,
             {
                 new: true,
             }
         )
-       if(productUpdated){
-        console.log("MENSAJE: Registro de producto productId: " + productFound._id + " actualizado exitosamente!!")        
+       if(branchUpdated){
+        console.log("MENSAJE: Stock de producto: " + productFound._id + " actualizado exitosamente!! - branchId: " +branchFound._id +" - dbuserid: " + dbuserid )
        }
     } catch (error) {
         console.log(error)
-        console.log("ERROR: No es posible eliminar compra. No se pudo actualiza registro de producto " + productFound._id + "! algo salió mal al intentar eliminar actualizar el registro de producto asociado a la compra: " + compraId)
-        return res.status(500).json("ERROR: No es posible eliminar compra. No se pudo actualiza registro de producto " + productFound._id + "! algo salió mal al intentar eliminar actualizar el registro de producto asociado a la compra: " + compraId)
+        console.log("ERROR: No es posible eliminar compra. No se pudo actualiza registro de stock en " + branchFound._id + "! algo salió mal al intentar eliminar actualizar el registro de stock para elproducto: " + productFound._id)
+        return res.status(500).json("ERROR: No es posible eliminar compra. No se pudo actualiza registro de stock en " + branchFound._id + "! algo salió mal al intentar eliminar actualizar el registro de stock para elproducto: " + productFound._id)
     }
+
+    
 
     //Elimino el registro de compra 
     console.log("MENSAJE: Eliminado registro de compra " + compraId + "... dbuserid: " + dbuserid)

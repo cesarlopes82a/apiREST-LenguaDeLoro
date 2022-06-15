@@ -27,7 +27,7 @@ const userSchema = new Schema(
         branches: [{
           type: Schema.Types.ObjectId,
           ref: "Branch",
-        }],
+        }],        
       }
     ],
 

@@ -17,7 +17,12 @@ const branchSchema = new Schema(
     ],
     stock:[{
         product: { type: Schema.Types.ObjectId,
-        ref: "Product", },
+          ref: "Product", },        
+        ultimoRegCompra: { type: Schema.Types.ObjectId,
+          ref: "Compra", 
+          default: null},
+        fechaUltimaCompra: String,
+        precioUnitUltCompra: Number,
         cantidad: Number,
       }
     ],
@@ -26,6 +31,7 @@ const branchSchema = new Schema(
         ref: "ListaDePrecios", }
       }
     ],
+
     defaultListaDP:{
       type: Schema.Types.ObjectId,
       ref: "ListaDePrecios",

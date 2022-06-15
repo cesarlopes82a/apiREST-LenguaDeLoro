@@ -130,8 +130,7 @@ export const getProductosByStoreIdAndPopulate = async (req, res) => {
     }
   }
   console.log("MENSAJE: getProductosByStoreIdAndPopulate() - " + storeId )
-  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId })
-  .populate("ultimoRegCompra")
+  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId })  
   .populate("categoriaRubro");
   res.status(200).json(productsFound);
 };
@@ -177,32 +176,7 @@ export const updateProductById = async (req, res) => {
   res.status(204).json(updatedProduct);
 };
 
-export const actualizarUltimoRegCompra = async(dbuserid, productId, compraId, cantidad) =>{
-  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
-    await userconnection.checkandcreateUserConnectionStack(dbuserid);
-  };
-  try {
-    const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId);
-    if(!productFound) return false
-  
-    productFound.ultimoRegCompra = compraId;
-    productFound.stock = productFound.stock + cantidad;
-    
-    const updatedProduct = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
-      productId,
-      productFound,
-      {
-        new: true,
-      }
-    )
-    return updatedProduct; 
-  } catch (error) {
-    console.log("MENSAJE: Ha ocurrido un error al intentar actualzar el producto con el ultimo registro de compra")
-    console.log(error)
-    return false
-  }
-  
-};
+
 
 export const deleteProductById = async (req, res) => {
   const { productId } = req.params;

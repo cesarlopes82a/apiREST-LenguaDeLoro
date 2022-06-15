@@ -116,6 +116,33 @@ export const getBranchById = async (req, res) => {
     return res.status(500).json(error);
   }
 };
+export const getBranchesByStoreId = async(req,res) => {
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!dbuserid) return res.status(403).json({ message: "No dbuserid provided" });
+
+  const  storeId  = req.params.storeId;
+  if (!storeId) return res.status(403).json({ message: "No storeId provided" });
+  
+  //VERIFICO si tengo un formato valido de id
+  if (!String(storeId).match(/^[0-9a-fA-F]{24}$/)){
+    return res.status(400).json({ message: "Invalid storeId: " + storeId });
+  } 
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+  try {
+    const branchesFound = await config.globalConnectionStack[dbuserid].branch.find({ storeId: storeId })
+    if(!branchesFound) return res.status(500).json("ERROR(23453): No se pudieron obtener las branches! ");
+
+    res.status(200).json(branchesFound);
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error);
+  }
+
+
+}
 
 export const deleteBranchById = async (req, res) => {
   const  branchid  = req.params.branchId;
@@ -278,15 +305,74 @@ export const registrarNewVenta = async (dbuserid, userId, branchId, ventaId) => 
     }
   };
   
+//-------------------------------------------------
+export const actualizarUltimoRegCompraAndStock = async(dbuserid, branchId, productId, compraId, cantidad) =>{
 
-export const actualizarStock = async (dbuserid, userId, branchId, productId, cantidad, operacion) => {
+  //verifico que existe el producto que me estan pasando
+  const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId);
+    if(!productFound) return false
+
+  //verifico que exista la compra que me estan pasando
+  const compraFound = await config.globalConnectionStack[dbuserid].compra.findById(compraId);
+  if(!compraFound) return false
+
+  //verifico que exista la branch que me estan pasando
+  const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId);
+  if(!branchFound) return false
+
+
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+  try {
+  
+    //voy a verificar si el producto ya existe dentro del array de stock de la branch
+    const index = branchFound.stock.findIndex(object => {
+      return object.product == productId;
+    });
+    if(index >= 0){   //esto me indica que el producto ya está carado al array de stock de esta branch
+      branchFound.stock[index].ultimoRegCompra = compraId
+      branchFound.stock[index].cantidad = branchFound.stock[index].cantidad + cantidad
+    }else{            //esto me indica que el producto no existe dentro del array de stock de esta branch
+      let objStock = {
+        product: productId,
+        ultimoRegCompra: compraId,
+        cantidad: cantidad
+      }
+      branchFound.stock.push(objStock)
+    }
+
+
+    const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+      branchId,
+      branchFound,
+      {
+        new: true,
+      }
+    )
+    return updatedBranch; 
+  } catch (error) {
+    console.log("MENSAJE: Ha ocurrido un error al intentar actualzar el la sucursal con el ultimo registro de compra/stock")
+    console.log(error)
+    return false
+  }
+  
+};
+//-------------------------------------------------
+
+export const actualizarStock = async (dbuserid, userId, branchId, productId, compraId, fechaUltimaCompra, precioUnitUltCompra, cantidad, operacion) => {
   console.log("MENESAJE: actualizarStock() - vengo a actualizar el stock de mercaderias ")
 
   if(!dbuserid){ console.log("ERROR - actualizarStock(): dbuserid expected"); return false }
   if(!userId){ console.log("ERROR - actualizarStock(): userId expected"); return false }
   if(!branchId){ console.log("ERROR - actualizarStock(): branchId expected"); return false }
   if(!productId){ console.log("ERROR - actualizarStock(): productId expected"); return false }
+  if(!compraId){ console.log("ERROR - actualizarStock(): compraId expected"); return false }
   if(!cantidad){ console.log("ERROR - actualizarStock(): cantidad expected"); return false }
+  if(!fechaUltimaCompra){ console.log("ERROR - actualizarStock(): fechaUltimaCompra expected"); return false }
+  if(!precioUnitUltCompra){ console.log("ERROR - actualizarStock(): precioUnitUltCompra expected"); return false }
+
   if(!operacion){ console.log("ERROR - actualizarStock(): operacion expected"); return false }
 
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
@@ -298,10 +384,13 @@ export const actualizarStock = async (dbuserid, userId, branchId, productId, can
     if(!userFound){ console.log("MENSAJE(7562): el usuario " + userId + " NO existe en la coleccion de USUARIOS."); return false } 
 
     const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
-    if(!branchFound){ console.log("MENSAJE(7562): la sucursal " + branchId + " NO existe en la coleccion de USUARIOS."); return false } 
+    if(!branchFound){ console.log("MENSAJE(7562): la sucursal " + branchId + " NO existe en la coleccion de BRANCHES."); return false } 
     
     const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId)
-    if(!productFound){ console.log("MENSAJE(7562): el producto " + productId + " NO existe en la coleccion de USUARIOS."); return false } 
+    if(!productFound){ console.log("MENSAJE(7562): el producto " + productId + " NO existe en la coleccion de PRODUCTOS."); return false }
+    
+    const compraFound = await config.globalConnectionStack[dbuserid].compra.findById(compraId)
+    if(!productFound){ console.log("MENSAJE(7562): la compra " + compraId + " NO existe en la coleccion de COMPRAS."); return false }
 
     //voy a buscar si el producto ya se encuentra en stock de la branch
     const productInBranchFound = await config.globalConnectionStack[dbuserid].branch.findOne({ _id: branchId, "stock.product": productId })
@@ -311,6 +400,9 @@ export const actualizarStock = async (dbuserid, userId, branchId, productId, can
         console.log("MENSAJE: el producto aún no existe dentro del stock de la sucursal. agrego un elemento nuevo en stock para esta sucursal")
         let elementoStock = {
           product: productId,
+          ultimoRegCompra: compraId,
+          fechaUltimaCompra: fechaUltimaCompra,
+          precioUnitUltCompra: precioUnitUltCompra,
           cantidad: cantidad
         }
         branchFound.stock.push(elementoStock)
@@ -321,11 +413,14 @@ export const actualizarStock = async (dbuserid, userId, branchId, productId, can
             new: true,
           }
         )
-      }else{ // el producto ya se encuentra en el array de stock de la sucursal solo tengo que sumar/restar cantidad
+      }else{ // el producto ya se encuentra en el array de stock de la sucursal solo tengo que sumar/restar cantidad Y actualizar el ultimoRegCompra
         console.log("MENSAJE: el producto existe en la sucursal. modifico la cantidad de este producto para esta sucursal")
         for (let i = 0; i < productInBranchFound.stock.length; i++) {
           if(String(productInBranchFound.stock[i].product) == productId){
             productInBranchFound.stock[i].cantidad = productInBranchFound.stock[i].cantidad + Number(cantidad)
+            productInBranchFound.stock[i].ultimoRegCompra = compraId
+            productInBranchFound.stock[i].fechaUltimaCompra = fechaUltimaCompra
+            productInBranchFound.stock[i].precioUnitUltCompra = precioUnitUltCompra
             break
           }
         }
@@ -337,8 +432,11 @@ export const actualizarStock = async (dbuserid, userId, branchId, productId, can
           }
         )
         return updatedBranch;
-      }
-      
+      }      
+    }
+
+    if(operacion == "vender"){ 
+
     }
 
   }
