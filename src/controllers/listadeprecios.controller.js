@@ -28,6 +28,7 @@ export const getListasDPsByStoreId = async(req, res) => {
 export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
   const dbuserid = req.userDB
   let storeId = req.params.storeId
+  
   console.log("MENSAJE: Obteniendo las listas de precios para la tiendaa: " + storeId)
 
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
@@ -38,6 +39,7 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
   //si es una branch, voy a tener que buscar si store.
   try {
     const storeFound = await config.globalConnectionStack[dbuserid].store.findById(storeId)
+    
     if(!storeFound){
       console.log("MENSAJE: Obteniendo store owner for branch: " +storeId)
       const storeFound4Branch = await config.globalConnectionStack[dbuserid].store.find({branches:storeId})
@@ -51,27 +53,38 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
       });
       }
     }
+    
   } catch (error) {
     console.log("MENSAJE: Hubo un error al intentar acceder a la DB " + dbuserid);
     console.log(error)
     return res.status(500).json(error);
   }
-
 
   try {  
     const listaFound = await config.globalConnectionStack[dbuserid].listadeprecios.find({storeId:storeId})
     .populate("creadapor")
     .populate("ldpProducts.product")
-    .populate("ldpProducts.product.categoriaRubro");
-    if(listaFound){   
-      console.log("MENSAJE: listas de precios encontradas para " + storeId);
-      return res.status(200).json(listaFound)
-    }else{
-      console.log("MENSAJE: (3435) No existen Lista de precios para la store " + storeId + " - DB: " + dbuserid);
-      return res.status(404).json({
-        message: "MENSAJE: (3435) No existen Lista de precios para la store " + storeId + " - DB: " + dbuserid
-      });
-    }    
+    .populate({ 
+      path: 'ldpProducts.product',
+      populate: {
+        path: 'categoriaRubro',
+        model: 'Category'
+      } 
+   })
+
+   
+    
+  if(listaFound){   
+
+    console.log(listaFound)
+    console.log("MENSAJE: listas de precios encontradas para " + storeId);
+    return res.status(200).json(listaFound)
+  }else{
+    console.log("MENSAJE: (3435) No existen Lista de precios para la store " + storeId + " - DB: " + dbuserid);
+    return res.status(404).json({
+      message: "MENSAJE: (3435) No existen Lista de precios para la store " + storeId + " - DB: " + dbuserid
+    });
+  }    
 
   } catch (error) {
     console.log("MENSAJE: Hubo un error al intentar acceder a la DB " + dbuserid);
@@ -80,55 +93,6 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
   }
 }
 
-/*
-export const createLDPs = async(req, res) => {
-  console.log("MENSAJE: createLDPs() - Creando una nueva lista de precios para la sucursal: ")
-  const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
-  var storeId = req.body.storeId
-  const userId = req.userId   
-  const { productName, unidadMedida, codigo, categoria } = req.body;  
- 
-  try {
-    var listadeprecios = new ListaDePrecios();
-    //para recoger los parametros que me llegan por el body de la peticion
-    var params = req.body;
-    
-    listadeprecios.listaNombre = params.listaNombre;
-    listadeprecios.descripcion = params.descripcion;
-    listadeprecios.products = params.products;
-    listadeprecios.creadapor = params.creadapor;
-    listadeprecios.fechaDeCreacion = params.fechaDeCreacion;
-    listadeprecios.storeId = params.storeId;
-
-    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
-      await userconnection.checkandcreateUserConnectionStack(dbuserid);
-    }
-    try {
-
-     
-
-      const saveLdps = Promise.resolve(new config.globalConnectionStack[dbuserid].listadeprecios(listadeprecios).save());
-      console.log("antes del THEN")
-      saveLdps.then((newLDPs) => {
-          console.log("Producto guardado exitosamente")
-          //storeControler.addProductToStore(dbuserid, storeId, newProduct._id)
-          console.log(newLDPs._id)
-          return res.status(201).json(newLDPs._id);
-      });
-
-    } catch (error) {
-        console.log("(234354) Hubo un error al intentar crear el nuevo producto  " + listadeprecios.listaNombre )
-        console.log(error)
-    }
-
-      //res.status(201).json(newProductSaved);
-    
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json(error);
-  }
-}
-*/
 export const registrarNuevaLDP = async(req,res) => {
   const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
   if(!dbuserid) return res.status(400).json("ERROR: No dbuserid. dbuserid Expected");
@@ -257,16 +221,18 @@ export const getListaDpByIdAndPopulateProducts = async(req,res) => {
   console.log(req.params.listaId)
 
   const listaId = req.params.listaId
-  console.log("MENSAJE: Obteniendo datos de lista de precio IDDD: " + listaId)
+  console.log("MENSAJE: Obteniendo datos de lista de precio IDDD-------------------: " + listaId)
 
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   }
   try {  
     const listaFound = await config.globalConnectionStack[dbuserid].listadeprecios.findById(listaId)
-    .populate("products");
+    .populate("products")
+   
+    
     if(listaFound){   
-      console.log("MENSAJE: lista de precios encontrada " + listaId);
+      console.log("MENSAJE: lista de precios encontradaa " + listaId);
       return res.status(200).json(listaFound)
     }else{
       console.log("MENSAJE: (767888888)Lista de precios " + listaId + " not found for DB " + dbuserid);
@@ -285,52 +251,70 @@ export const getListaDpByIdAndPopulateProducts = async(req,res) => {
 
 
 
-
-/*
-export const createLDP = async (req, res) => {
-  console.log("MENSAJE: createLDP() - vengo a crear/agregar una nueva lista de precios")
-  const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
-  var storeId = req.body.storeId
-  const userId = req.userId   
-  const { productName, unidadMedida, codigo, categoria } = req.body;  
- 
-  try {
-    var listadeprecios = new ListaDePrecios();
-    //para recoger los parametros que me llegan por el body de la peticion
-    var params = req.body;
-    
-    listadeprecios.listaNombre = params.listaNombre;
-    listadeprecios.descripcion = params.descripcion;
-    listadeprecios.products = params.products;
-    listadeprecios.creadapor = params.creadapor;
-    listadeprecios.fechaDeCreacion = params.fechaDeCreacion;
-
-    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
-      await userconnection.checkandcreateUserConnectionStack(dbuserid);
-    }
-    try {
-
-      const saveProduct = Promise.resolve(new config.globalConnectionStack[dbuserid].product(producto).save());
-      console.log("antes del THEN")
-      saveProduct.then((newProduct) => {
-          console.log("Producto guardado exitosamente")
-          //storeControler.addProductToStore(dbuserid, storeId, newProduct._id)
-          console.log(newProduct._id)
-          res.status(201).json(newProduct._id);
-      });
-
-    } catch (error) {
-        console.log("(234354) Hubo un error al intentar crear el nuevo producto  " + producto.productName )
-        console.log(error)
-    }
-
-      //res.status(201).json(newProductSaved);
-    
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json(error);
+export const setDefaultStoreLDP = async(req,res) => {
+  console.log("MENSAJE: Seteando default store Ldp")
+  const dbuserid = req.userDB
+  const itemMenuSeleccionadoId = req.params.itemMenuSeleccionadoId
+  console.log(itemMenuSeleccionadoId)
+  let { listaId } = req.body;
+  if(!dbuserid) return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible registrar lista de precios Default");
+  if(!itemMenuSeleccionadoId) return res.status(400).json("ERROR: No target. target Expected - Imposible registrar lista de precios Default");
+  if(!listaId) return res.status(400).json("ERROR: No listaId. listaId Expected - Imposible registrar lista de precios Default");
+  //console.log("MENSAJE: Seteando default store Ldp para storeId: " + storeId + " - listaId: " + listaId + " - dbuserid: "+ dbuserid)
+  
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
   }
+
+  try {
+    //verifico que exista la listaId que me estan pasando   
+    const listaFound = await config.globalConnectionStack[dbuserid].listadeprecios.findById(listaId)
+    if(!listaFound){
+      console.log("ERROR: listaId: " +listaId+ " notFound. No se encontró la lista de precios!" )
+      return res.status(400).json("ERROR: listaId: " +listaId+ " notFound. No se encontró la lista de precios! Verifique!");
+    }
+
+
+    //verifico si el itemMenuSeleccionadoId es una store o una branch
+    const storeFound = await config.globalConnectionStack[dbuserid].store.findById(itemMenuSeleccionadoId)
+    if(storeFound){
+      console.log("MENSAJE: el target es un storeId: " +storeFound._id+ ". Intentando setear default Lista de precios para la store!" )
+      storeFound.defaultListaDP = listaId
+      const storeUpdated = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+        storeFound._id,
+        storeFound,
+        {
+          new: true,
+        }
+      );
+      if(storeUpdated) return res.status(200).json(storeUpdated)
+    }
+
+
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(itemMenuSeleccionadoId)
+    if(branchFound){
+      console.log("MENSAJE: el target es un branchId: " +branchFound._id+ ". Intentando setear default Lista de precios para la sucursal!" )
+      branchFound.defaultListaDP = listaId
+      const branchUpdated = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+        branchFound._id,
+        branchFound,
+        {
+          new: true,
+        }
+      );
+      if(branchUpdated) return res.status(200).json(branchUpdated)
+    }
+    
+    if(targetStoreOrBranch==""){
+      console.log("ERROR: Target inexistente. No se ha podido encontrar una coincidencia de storeId ni de branchId. Imposible setear default Lista de precios!" )
+      return res.status(400).json("ERROR: Target inexistente. No se ha podido encontrar una coincidencia de storeId ni de branchId. Imposible setear default Lista de precios!");
+    }
+
+
+  } catch (error) {
+    console.error(error);
+  }
+
   
-  
-};
-*/
+
+}

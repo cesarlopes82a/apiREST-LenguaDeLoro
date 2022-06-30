@@ -19,6 +19,12 @@ router.post(
 );
 
 
+router.post(
+  "/setDefaultStoreLDP/:itemMenuSeleccionadoId",
+  [ authJwt.verifyToken, [authJwt.isAdminMaster || authJwt.isAdminGlobal || authJwt.isAdminTienda] ],
+  listadpCtrl.setDefaultStoreLDP
+);
+
 
 
 

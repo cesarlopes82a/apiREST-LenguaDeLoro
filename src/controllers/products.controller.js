@@ -103,7 +103,8 @@ export const getProductosByStoreId = async (req, res) => {
     }
   }
   console.log("MENSAJE: getProductosByStoreId() - " + storeId )
-  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId });
+  const productsFound = await config.globalConnectionStack[dbuserid].product.find({ "storeId": storeId })
+  .populate("categoriaRubro")
   res.status(200).json(productsFound);
 };
 

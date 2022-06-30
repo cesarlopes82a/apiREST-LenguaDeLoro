@@ -176,13 +176,15 @@ export const createCategoriasDB = async (dbuserid) => {
         if (count > 0) return;
     
         // Create default Categoties
+
         categoryCtrl.createCategory(dbuserid, "Alimentos secos")
-        categoryCtrl.createCategory(dbuserid, "Fiambres")
+        categoryCtrl.createCategory(dbuserid, "Fiambres y lacteos")
         categoryCtrl.createCategory(dbuserid, "Golocinas")
         categoryCtrl.createCategory(dbuserid, "Bebidas con alcohol")
         categoryCtrl.createCategory(dbuserid, "Bebidas sin alcohol")
         categoryCtrl.createCategory(dbuserid, "Articulos de tocador")
         categoryCtrl.createCategory(dbuserid, "Articulos de limpieza")
+        categoryCtrl.createCategory(dbuserid, "Cigarrillos")
       } catch (error) {
         console.error(error);
       }
