@@ -24,6 +24,12 @@ const branchSchema = new Schema(
         fechaUltimaCompra: String,
         precioUnitUltCompra: Number,
         cantidad: Number,
+        ajustes:[{
+          fechaAjuste: String,
+          justificacion: String,
+          accion: String,
+          cantidad: Number
+        }]
       }
     ],
     listasdeprecios:[{

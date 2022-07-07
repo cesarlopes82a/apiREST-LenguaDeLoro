@@ -446,3 +446,51 @@ export const actualizarStock = async (dbuserid, userId, branchId, productId, com
   }
   
 }
+export const getStockByBranchId = async(req,res) => {
+  console.log("MENSAJE: getStockByBranchId()")
+
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: dbuserid formato inválido. Imposible obtener stock!")
+    return res.status(400).json("ERROR: dbuserid formato inválido. Imposible obtener stock!");
+  } 
+  if(!dbuserid){
+    console.log("ERROR: No dbuserid. dbuserid Expected - Imposible obtener stock!")    
+    return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible obtener stock!");
+  } 
+
+  const  branchId  = req.params.branchId;
+  if (!String(branchId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: branchId formato inválido. Imposible obtener stock!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: dbuserid formato inválido. Imposible obtener stock!. dbuserid:" + dbuserid);
+  } 
+  if(!branchId){
+    console.log("ERROR: No branchId. branchId Expected - Imposible obtener stock!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible obtener stock!. dbuserid:" + dbuserid);
+  }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+  try {
+    const branchesFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+    .populate("stock.product")
+    .populate({ 
+      path: 'stock.product',
+      populate: {
+        path: 'categoriaRubro',
+        model: 'Category'
+      } 
+    })      
+    .populate("stock.ultimoRegCompra")
+    if(!branchesFound) return res.status(500).json("ERROR(23453): No se pudieron obtener las branches! ");
+
+    res.status(200).json(branchesFound);
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error);
+  }
+
+
+}

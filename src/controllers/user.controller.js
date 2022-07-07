@@ -711,14 +711,14 @@ export const addBranchToUser = async (dbuserid, storeId, branchId, userId) => {
       //Verifico si el usuario ya tiene asociada la store dentro del array de tiendas
       let storeFoundInUserTiendas = false
       for (let i = 0; i < adminMasterFound.tiendas.length; i++) {
-        console.log("voy a compara la store de la tienda del user con el storeId")
+        console.log("voy a comparar la store de la tienda del user con el storeId")
         console.log(adminMasterFound.tiendas[i].store)
         console.log(storeId)
-        if(adminMasterFound.tiendas[i].store == storeId){
+        if(String(adminMasterFound.tiendas[i].store) == storeId){
           storeFoundInUserTiendas = true
           //Verifico si el user ya tiene asociada la branch dentro del array de tiendas
           for (let p = 0; p < adminMasterFound.tiendas[i].branches.length; p++) {
-            if(adminMasterFound.tiendas[i].branches[p]._id == branchId){
+            if(String(adminMasterFound.tiendas[i].branches[p]._id) == branchId){
               //si pasa esto no tengo que hacer nada. la branch ya esta asociada ok al user
               console.log( "AVISO(44565): la branchId: " + branchId + " EXISTE en la coleccion de branches asociada al adminMaster: " + userFound.adminMasterID + " - dbuserid: " + dbuserid);
               return adminMasterFound            
