@@ -17,6 +17,12 @@ router.post(
   [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchNameExistsInStore],
   branchCtrl.createBranch
 );
+
+router.post(
+"/ajustarStock/:branchId",
+[ authJwt.verifyToken, authJwt.isAdminMaster ],
+branchCtrl.ajustarStock
+);
   
 router.put(
   "/:branchId",

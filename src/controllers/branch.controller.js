@@ -491,6 +491,130 @@ export const getStockByBranchId = async(req,res) => {
     console.log(error);
     return res.status(500).json(error);
   }
+}
+export const ajustarStock = async(req,res) => {
+  console.log("MENSAJE: ajustarStock()")
+
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: ajustarStock() - dbuserid formato inválido. Imposible ajustar stock!")
+    return res.status(400).json("ERROR: ajustarStock() - dbuserid formato inválido. Imposible ajustar stock!");
+  } 
+  if(!dbuserid){
+    console.log("ERROR: ajustarStock() - No dbuserid. dbuserid Expected - Imposible ajustar stock!")    
+    return res.status(400).json("ERROR: ajustarStock() - No dbuserid. dbuserid Expected - Imposible ajustar stock!");
+  } 
+
+  const userId = req.userId
+  if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: ajustarStock() - userId formato inválido. Imposible ajustar stock!")
+    return res.status(400).json("ERROR: ajustarStock() - userId formato inválido. Imposible ajustar stock!");
+  } 
+  if(!userId){
+    console.log("ERROR: ajustarStock() - No userId. dbuserid Expected - Imposible ajustar stock!")    
+    return res.status(400).json("ERROR: ajustarStock() - No userId. dbuserid Expected - Imposible ajustar stock!");
+  } 
+
+  const  branchId  = req.params.branchId;
+  if (!String(branchId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: ajustarStock() - branchId formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: ajustarStock() - dbuserid formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid);
+  } 
+  if(!branchId){
+    console.log("ERROR: ajustarStock() - No branchId. branchId Expected - Imposible ajustar stock!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: ajustarStock() - No dbuserid. dbuserid Expected - Imposible ajustar stock!. dbuserid:" + dbuserid);
+  }
+
+  const productId = req.body.productId
+  if (!String(branchId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: ajustarStock() - productId formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId)
+    return res.status(400).json("ERROR: ajustarStock() - productId formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid+ " - branchId: " + branchId);
+  } 
+  if(!productId){
+    console.log("ERROR: ajustarStock() - No productId. productId Expected - Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId)
+    return res.status(400).json("ERROR: ajustarStock() - No productId. productId Expected - Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId);
+  }
+
+  const  cantidadActual = req.body.cantidadActual
+ 
+  const  nuevaCantidad = req.body.nuevaCantidad
+  if(!nuevaCantidad){
+    console.log("ERROR: ajustarStock() - No se ha recibido un nuevo valor para el stock. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId)
+    return res.status(400).json("ERROR: ajustarStock() - No se ha recibido un nuevo valor para el stock. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId);
+  }
+
+  const  descripcionAjuste = req.body.descripcionAjuste
+  if(!descripcionAjuste){
+    console.log("ERROR: ajustarStock() - No se ha recibido descripcionAjuste. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId)
+    return res.status(400).json("ERROR: ajustarStock() - No se ha recibido descripcionAjuste. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId);
+  }
+
+  console.log("MENSAJE: ajustarStock() - intentando actualizar stock para branchId: " + branchId + " - productId: " + productId + " - cantidadActual: " + cantidadActual + " nuevaCantidad: " +nuevaCantidad)
+  try {
+    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+      await userconnection.checkandcreateUserConnectionStack(dbuserid);
+    };
+
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    .populate("roles")
+    if(!userFound) {
+      console.log("ERROR: ajustarStock() - Error al obtener userId: " + userId +". Imposible ajustar stock!. dbuserid:" + dbuserid )
+      return res.status(500).json("ERROR: ajustarStock() - Error al obtener userId: " + userId +". Imposible ajustar stock!. dbuserid:" + dbuserid);
+    }
+    console.log("el userId----------")
+    console.log(userFound)
+
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+    if(!branchFound) {
+      console.log("ERROR: ajustarStock() - Error al obtener branchId: " + branchId +". Imposible ajustar stock!. dbuserid:" + dbuserid )
+      return res.status(500).json("ERROR: ajustarStock() - Error al obtener branchId: " + branchId +". Imposible ajustar stock!. dbuserid:" + dbuserid);
+    }
+
+    
+    const productInBranchFound = await config.globalConnectionStack[dbuserid].branch.findOne({ _id: branchId, "stock.product": productId })
+    if(!productInBranchFound) {
+      console.log("ERROR: ajustarStock() - Error al obtener productId: " + productId + " para branchId:" + branchId +". Imposible ajustar stock!. dbuserid:" + dbuserid )
+      return res.status(500).json("ERROR: ajustarStock() - Error al obtener productId: " + productId + " para branchId:" + branchId +". Imposible ajustar stock!. dbuserid:" + dbuserid );
+    }
 
 
+
+    //defino el objAjuste con el detalle del ajuste para este producto
+    let fechaActual =  new Date().toISOString().slice(0, 19).replace('T', ' ')
+   
+    let objAjuste = {
+      fechaAjuste: fechaActual,
+      justificacion: descripcionAjuste,
+      accion: "Se ajusta stock de mercaderias - Valor: " + cantidadActual + " - NuevoValor: " + nuevaCantidad,
+      cantidad: nuevaCantidad,
+      userName: userFound.username,
+      userRole: userFound.roles[0].roleName
+    }
+
+    for (let i = 0; i < productInBranchFound.stock.length; i++) {
+      if(String(productInBranchFound.stock[i].product) == productId){
+        productInBranchFound.stock[i].cantidad = nuevaCantidad
+        productInBranchFound.stock[i].ajustes.push(objAjuste)
+        break
+      }
+    }
+    const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+      branchId,
+      productInBranchFound,
+      {
+        new: true,
+      }
+    )
+    if(updatedBranch){
+      return res.status(200).json(updatedBranch);
+    }else{
+      console.log("ERROR: ajustarStock() - Error al ajustar stock: " + branchId +". VERIFIQUE! Imposible ajustar stock!. dbuserid:" + dbuserid )
+      return res.status(500).json("ERROR: ajustarStock() - Error al ajustar stock: " + branchId +". VERIFIQUE! Imposible ajustar stock!. dbuserid:" + dbuserid);
+    }
+
+  } catch (error) {
+    console.log("ERROR: ajustarStock() - error tryCatch!")
+    console.log(error);
+    return res.status(500).json(error);
+  }
 }

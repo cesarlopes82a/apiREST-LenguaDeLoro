@@ -28,7 +28,9 @@ const branchSchema = new Schema(
           fechaAjuste: String,
           justificacion: String,
           accion: String,
-          cantidad: Number
+          cantidad: Number,
+          userName: String,
+          userRole: String,
         }]
       }
     ],
