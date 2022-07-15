@@ -27,7 +27,8 @@ const ventaSchema = new Schema(
         codigo: String,
         precio: Number,
         cantidad: Number,
-        rubro: String,
+        rubro: { type: Schema.Types.ObjectId,
+          ref: "Category", },
         total: Number,
     }],
     totalVta: Number,
@@ -36,6 +37,10 @@ const ventaSchema = new Schema(
       default: 0
     },
     montoTarjeta: { 
+      type: Number, 
+      default: 0
+    },
+    montoOtro: { 
       type: Number, 
       default: 0
     },

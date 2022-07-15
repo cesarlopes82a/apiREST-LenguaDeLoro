@@ -103,6 +103,7 @@ export const registrarVenta = async (req, res) => {
 
             const compraAsociadaSucursal = await asociandoVentaBranch()
             .then((response)=>{
+                console.log("la venta")
                 console.log(response)
                 return response    
             }).catch((error)=>{
@@ -136,6 +137,7 @@ export const registrarVenta = async (req, res) => {
             };
             // PASO 3: Actualizar stock de productos vendidos
             //VEEEERRRR EL ROLBACK!!!!
+            console.log("MENSAJE: Actializando stock de productos")
             for (let i = 0; i < registroVenta.productosVendidos.length; i++) {
                 const index = branchFound.stock.findIndex(object => {
                     return String(object.product) == String(registroVenta.productosVendidos[i].productId);
@@ -200,6 +202,9 @@ export const getVentasByBranchAndPopulateInfo = async (req, res) => {
     const ventasFound = await config.globalConnectionStack[dbuserid].venta.find({branchId: branchid})
     .populate("branchId")
     .populate("userId")
+    .populate("productosVendidos.rubro")
+      
+
     
     if(!ventasFound){ console.log("MENSAJE(45646): No existen ventas registradas para la sucursal " + branchId); return false } 
     
