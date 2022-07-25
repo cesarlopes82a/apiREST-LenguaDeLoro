@@ -6,6 +6,8 @@ import { authJwt } from "../middlewares";
 
 router.get("/", [authJwt.verifyToken], ventasCtrl.getVentas);
 
+router.get("/sttVtas1/Info/", [authJwt.verifyToken], ventasCtrl.getVentasForStatistics1);
+
 router.get("/:branchId", [authJwt.verifyToken], ventasCtrl.getVentasByBranch);
 
 router.get("/:branchId/Info", [authJwt.verifyToken], ventasCtrl.getVentasByBranchAndPopulateInfo);
@@ -15,5 +17,8 @@ router.post(
   [authJwt.verifyToken],
   ventasCtrl.registrarVenta
 );
+
+
+
 
 export default router;

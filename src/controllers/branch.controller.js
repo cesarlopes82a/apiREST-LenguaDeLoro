@@ -235,6 +235,8 @@ if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); r
     } else{
       branchFound.compras.push(compraId)
       try {
+        console.log("------!!!!--------")
+        console.log(branchFound)
         const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
           branchId,
           branchFound,
@@ -242,6 +244,8 @@ if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); r
             new: true,
           }
         )
+        console.log("------!!!!--------")
+        console.log(updatedBranch)
         console.log("MENESAJE: registrarNewCompra() - Coleccion de branch actualizada con exito. La compra ha sido asociada a la sucursal!")
         return updatedBranch
       } catch (error) {
@@ -258,7 +262,8 @@ if(!compraId){ console.log("ERROR - registrarNewCompra(): compraId expected"); r
 };
 
 export const registrarNewVenta = async (dbuserid, userId, branchId, ventaId) => {
-
+  console.log("MENSAJE: branchControler - registrarNewVenta(). Iniciando proceso...")
+  console.log("MENSAJE: branchControler - asociando ventaId: " + ventaId + " a la sucursal branchId: " + branchId + ". UserId: " + userId + " dbuserid: " +dbuserid )
   if(!dbuserid){ console.log("ERROR - registrarNewVenta(): dbuserid expected"); return false }
   if(!userId){ console.log("ERROR - registrarNewVenta(): userId expected"); return false }
   if(!branchId){ console.log("ERROR - registrarNewVenta(): branchId expected"); return false }
@@ -281,7 +286,9 @@ export const registrarNewVenta = async (dbuserid, userId, branchId, ventaId) => 
       if(ventaAttached.length > 0 ){
         console.log("MENESAJE: registrarNewVenta() - NO SE REALIZA ASIGNACION de venta")
       } else{
+        console.log("MENSAJE: branchControler - branchFound.ventas.push("+ventaId+")")
         branchFound.ventas.push(ventaId)
+       // console.log(branchFound.ventas)
         try {
           const updatedBranch = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
             branchId,
@@ -291,7 +298,9 @@ export const registrarNewVenta = async (dbuserid, userId, branchId, ventaId) => 
             }
           )
           console.log("MENESAJE: registrarNewVenta() - Coleccion de branch actualizada con exito. La compra ha sido asociada a la sucursal!")
+          console.log(updatedBranch.ventas)
           return updatedBranch
+
         } catch (error) {
           console.log("MENESAJE: registrarNewVenta() - Esta venta ya ha sido asociada a una sucursal")
           console.log(error)
