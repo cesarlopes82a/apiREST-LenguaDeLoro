@@ -977,39 +977,51 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                                     switch (mes) {
                                         case 1:                                       
                                             totalesAgrupados.productos[p].totalVdo01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 2:
                                             totalesAgrupados.productos[p].totalVdo02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;                        
                                         case 3:
                                             totalesAgrupados.productos[p].totalVdo03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 4:
                                             totalesAgrupados.productos[p].totalVdo04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 5:
                                             totalesAgrupados.productos[p].totalVdo05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 6:
                                             totalesAgrupados.productos[p].totalVdo06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 7:
                                             totalesAgrupados.productos[p].totalVdo07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 8:
                                             totalesAgrupados.productos[p].totalVdo08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;                        
                                         case 9:
                                             totalesAgrupados.productos[p].totalVdo09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 10:
                                             totalesAgrupados.productos[p].totalVdo10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 11:
-                                            totalesAgrupados.productos[p].totalVdo11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 12:
-                                            totalesAgrupados.productos[p].totalVdo12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            totalesAgrupados.productos[p].totalVdo$12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
     
                                     }
@@ -1022,7 +1034,8 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                                     productId: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].productId,
                                     nombre: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].nombre,
                                     codigo: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].codigo,
-                                    totalVendido: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad,                                    
+                                    totalVendido: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad,
+                                    totalVendido$: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total,
                                     totalVdo01:0,
                                     totalVdo02:0,
                                     totalVdo03:0,
@@ -1034,44 +1047,68 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                                     totalVdo09:0,
                                     totalVdo10:0,
                                     totalVdo11:0,
-                                    totalVdo12:0
+                                    totalVdo12:0,
+                                    totalVdo$01:0,
+                                    totalVdo$02:0,
+                                    totalVdo$03:0,
+                                    totalVdo$04:0,
+                                    totalVdo$05:0,
+                                    totalVdo$06:0,
+                                    totalVdo$07:0,
+                                    totalVdo$08:0,
+                                    totalVdo$09:0,
+                                    totalVdo$10:0,
+                                    totalVdo$11:0,
+                                    totalVdo$12:0
                                 }
                                 switch (mes) {
                                     case 1:                                       
                                         objProducto.totalVdo01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 2:
                                         objProducto.totalVdo02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;                        
                                     case 3:
                                         objProducto.totalVdo03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 4:
                                         objProducto.totalVdo04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 5:
                                         objProducto.totalVdo05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 6:
                                         objProducto.totalVdo06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 7:
                                         objProducto.totalVdo07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 8:
                                         objProducto.totalVdo08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;                        
                                     case 9:
                                         objProducto.totalVdo09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 10:
                                         objProducto.totalVdo10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 11:
                                         objProducto.totalVdo11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
                                     case 12:
                                         objProducto.totalVdo12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        objProducto.totalVdo$12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                         break;
 
                                 }
