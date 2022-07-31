@@ -797,7 +797,6 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                 for (let v = 0; v < userFound.tiendas[t].branches[b].ventas.length; v++) {
                     let anio=userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getFullYear() 
                     let mes = userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getMonth() + 1;
-                    console.log("es mes: "+mes+". el año: "+ anio)
                     if(String(anio) == String(req.query.yearVentas)){
                         //TOTAL VENTAS/TRANSAC GENERAL
                         totalesAgrupados.totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
@@ -1083,58 +1082,56 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                         let vendedorProcesado = false
                         for (let ven = 0; ven < totalesAgrupados.vendedores.length; ven++) {                            
                             if(String(totalesAgrupados.vendedores[ven].userId) == String(userFound.tiendas[t].branches[b].ventas[v].userId._id)){
-                                console.log("----------")
-                                console.log(String(userFound.tiendas[t].branches[b].ventas[v].userId))
-                                vendedorProcesado.vendedores[ven].totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
-                                vendedorProcesado.vendedores[ven].totalTransacc += 1
+                                totalesAgrupados.vendedores[ven].totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
+                                totalesAgrupados.vendedores[ven].totalTransacc += 1
                                 switch (mes) {
                                     case 1:
-                                        vendedorProcesado.vendedores[ven].totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac01 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac01 += 1
                                         break;
                                     case 2:
-                                        vendedorProcesado.vendedores[ven].totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac02 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac02 += 1
                                         break;                        
                                     case 3:
-                                        vendedorProcesado.vendedores[ven].totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac03 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac03 += 1
                                         break;
                                     case 4:
-                                        vendedorProcesado.vendedores[ven].totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac04 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac04 += 1
                                         break;
                                     case 5:
-                                        vendedorProcesado.vendedores[ven].totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac05 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac05 += 1
                                         break;
                                     case 6:
-                                        vendedorProcesado.vendedores[ven].totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac06 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac06 += 1
                                         break;
                                     case 7:
-                                        vendedorProcesado.vendedores[ven].totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac07 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac07 += 1
                                         break;
                                     case 8:
-                                        vendedorProcesado.vendedores[ven].totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac08 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac08 += 1
                                         break;                        
                                     case 9:
-                                        vendedorProcesado.vendedores[ven].totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac09 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac09 += 1
                                         break;
                                     case 10:
-                                        vendedorProcesado.vendedores[ven].totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac10 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac10 += 1
                                         break;
                                     case 11:
-                                        vendedorProcesado.vendedores[ven].totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac11 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac11 += 1
                                         break;
                                     case 12:
-                                        vendedorProcesado.vendedores[ven].totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        vendedorProcesado.vendedores[ven].totTrasac12 += 1
+                                        totalesAgrupados.vendedores[ven].totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        totalesAgrupados.vendedores[ven].totTrasac12 += 1
                                         break;
     
                                 }
