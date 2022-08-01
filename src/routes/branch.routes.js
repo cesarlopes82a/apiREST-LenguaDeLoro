@@ -12,6 +12,8 @@ router.get("/stock/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branc
 
 router.get("/bystoreId/:storeId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchesByStoreId);
 
+router.get("/bybranchId/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchesByBranchId);
+
 router.post(
   "/createBranch",
   [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchNameExistsInStore],
