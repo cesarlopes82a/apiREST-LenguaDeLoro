@@ -48,6 +48,12 @@ const ventaSchema = new Schema(
       type: String, 
       default: null 
     },
+    anulada:{
+      anulada:{ type: Boolean, default: false },
+      anuladaPor: { type: String, default: null },
+      anuladaFecha: { type: String, default: null },
+      anuladaMotivo: { type: String, default: null },      
+    },    
   },
   {
     timestamps: true,

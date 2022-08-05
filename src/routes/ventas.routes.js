@@ -8,7 +8,9 @@ router.get("/", [authJwt.verifyToken], ventasCtrl.getVentas);
 
 router.get("/sttVtas1/Info/", [authJwt.verifyToken], ventasCtrl.getVentasForStatistics1);
 
-router.get("/sttVtas2/Info/", [authJwt.verifyToken],ventasCtrl.getVentasForStatisticsPorSucursal)
+router.get("/sttVtas2/Info/", [authJwt.verifyToken],ventasCtrl.getVentasForStatisticsPorSucursal);
+
+router.get("/sttVtas3/Info/", [authJwt.verifyToken],ventasCtrl.getVentasForStatisticsPorTienda)
 
 router.get("/:branchId", [authJwt.verifyToken], ventasCtrl.getVentasByBranch);
 
@@ -19,6 +21,16 @@ router.post(
   [authJwt.verifyToken],
   ventasCtrl.registrarVenta
 );
+
+router.post(
+  "/postAnularVenta",
+  [authJwt.verifyToken],
+  ventasCtrl.postAnularVenta
+);
+
+
+
+
 
 
 

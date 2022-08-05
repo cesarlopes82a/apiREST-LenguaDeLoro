@@ -197,6 +197,122 @@ export const registrarVenta = async (req, res) => {
 
 }
 
+export const postAnularVenta = async (req, res) => {
+    console.log("MENSAJE: Iniciando proceso de anulacion de venta")
+   
+    const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+    if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+        console.log("ERROR: postAnularVenta() - dbuserid formato inválido. Imposible anular venta!")
+        return res.status(400).json("ERROR: postAnularVenta() - dbuserid formato inválido. Imposible anular venta!");
+    } 
+    if(!dbuserid){
+        console.log("ERROR: postAnularVenta() - No dbuserid. dbuserid Expected - Imposible anular venta!")    
+        return res.status(400).json("ERROR: postAnularVenta() - No dbuserid. dbuserid Expected - Imposible anular venta!");
+    } 
+
+    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+        await userconnection.checkandcreateUserConnectionStack(dbuserid);
+    }
+
+    const userId = req.userId
+    if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+        console.log("ERROR: postAnularVenta() - userId formato inválido. Imposible anular venta!")
+        return res.status(400).json("ERROR: ajustarStock() - userId formato inválido. Imposible anular venta!");
+    } 
+    if(!userId){
+        console.log("ERROR: postAnularVenta() - No userId. userId Expected - Imposible anular venta!")    
+        return res.status(400).json("ERROR: postAnularVenta() - No userId. userId Expected - Imposible anular venta!")
+    } 
+
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    if(!userFound) {
+        console.log("ERROR: postAnularVenta() - No userId: "+userId+" not found. - Imposible anular venta!")    
+        return res.status(400).json("ERROR: postAnularVenta() - No userId: "+userId+" not found. - Imposible anular venta!")    
+    }
+
+    var params = req.body;
+    const ventaId = req.body.ventaId
+    if(!ventaId){
+        console.log("ERROR: postAnularVenta() - No ventaId. ventaId Expected - Imposible anular venta!")
+        return res.status(400).json("ERROR: postAnularVenta() - No ventaId. ventaId Expected - Imposible anular venta!")
+    }
+    const ventaFound = await config.globalConnectionStack[dbuserid].venta.findById(ventaId)
+    if(!ventaFound){
+        console.log("ERROR: postAnularVenta() - ventaId: "+ventaId+" not found. - Imposible anular venta!")    
+        return res.status(400).json("ERROR: postAnularVenta() - ventaId: "+ventaId+" not found. - Imposible anular venta!")    
+    }
+
+    const branchId =  req.body.branchId
+    if(!branchId){
+        console.log("ERROR: postAnularVenta() - No branchId. branchId Expected - Imposible anular venta!")
+        return res.status(400).json("ERROR: postAnularVenta() - No branchId. branchId Expected - Imposible anular venta!")
+    }
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(branchId)
+    if(!branchFound){
+        console.log("ERROR: postAnularVenta() - branchId: "+branchId+" not found. - Imposible anular venta!")    
+        return res.status(400).json("ERROR: postAnularVenta() - branchId: "+branchId+" not found. - Imposible anular venta!")    
+    }
+
+    let fechaActual =  new Date().toISOString().slice(0, 19).replace('T', ' ')
+
+    console.log(fechaActual)
+
+    //actualizo el stock del productos asociados a la ventaId
+    for(let v=0; v<ventaFound.productosVendidos.length; v++){    
+        for(let p=0; p<branchFound.stock.length; p++){
+            if(String(ventaFound.productosVendidos[v].productId) == String(branchFound.stock[p].product)){
+                branchFound.stock[p].cantidad += ventaFound.productosVendidos[v].cantidad
+                break
+            }
+        }
+    }
+    
+    try {
+        console.log("MENSAJE: Actualizando registro de stock de productos asociados a ventaId: " + ventaId +" - branchId: " +branchFound._id +" - dbuserid: " + dbuserid )
+        const branchUpdated = await config.globalConnectionStack[dbuserid].branch.findByIdAndUpdate(
+            branchFound._id,
+            branchFound,
+            {
+                new: true,
+            }
+        )
+       if(branchUpdated){
+        console.log("MENSAJE: Stock de producto asociados a ventaId: " + ventaId + " actualizado exitosamente!! - branchId: " +branchFound._id +" - dbuserid: " + dbuserid )
+       }
+    } catch (error) {
+        console.log(error)
+        console.log("ERROR: Ha ocurrido al intentar actualizar registro branchFound. " + branchFound._id + " - dbuserid: " + dbuserid )
+        return res.status(500).json("ERROR: Ha ocurrido al intentar actualizar registro branchFound. " + branchFound._id + " - dbuserid: " + dbuserid )
+    }
+
+    //actualizo el estado de la ventaId
+    ventaFound.anulada.anulada=true
+    ventaFound.anulada.anuladaPor=userFound.username
+    ventaFound.anulada.anuladaFecha=fechaActual
+
+    try {
+        console.log("MENSAJE: Actualizando estado de ventaId: " + ventaId +" - branchId: " +branchFound._id +" - dbuserid: " + dbuserid )
+        const ventaUpdated = await config.globalConnectionStack[dbuserid].venta.findByIdAndUpdate(
+            ventaId,
+            ventaFound,
+            {
+                new: true,
+            }
+        )
+       if(ventaUpdated){
+        console.log("MENSAJE: Estado de ventaId: " + ventaId + " actualizado exitosamente!! - branchId: " +branchFound._id +" - dbuserid: " + dbuserid )
+       }
+    } catch (error) {
+        console.log(error)
+        console.log("ERROR: Ha ocurrido al intentar actualizar el estado de la ventaId: " + ventaId + " - dbuserid: " + dbuserid )
+        return res.status(500).json("ERROR: Ha ocurrido al intentar actualizar el estado de la ventaId: " + ventaId + " - dbuserid: " + dbuserid )
+    }
+
+
+    return res.status(200).json(fechaActual);
+
+}
+
 export const getVentas = async (req, res) => {
     
     const dbuserid = req.userDB;
@@ -348,96 +464,94 @@ export const getVentasForStatistics1 = async (req, res) => {
             }
             totalesAgrupados[i].sucursales.push(objSucursal)
             //recorro las ventas de la sucursal para generar los totales de ventas por vendedor
+            console.log(userFound.tiendas[i].branches[u].branchName)
             for (let j = 0; j < userFound.tiendas[i].branches[u].ventas.length; j++) {
-                let anio=userFound.tiendas[i].branches[u].ventas[j].fechaDeVta.getFullYear()
-                console.log(anio);
-                if(String(anio) == String(req.query.param)){
-                    console.log(anio +" - " + req.query.param)
-                    //VOY A REVISAR SI YA PROCESÉ LAS VENTAS PARA EL USUARIO de esta venta
-                    
-                    let ventasProcesadas = false
-                    for (let iV = 0; iV < totalesAgrupados[i].sucursales[u].vendedores.length; iV++) {
-                        if(totalesAgrupados[i].sucursales[u].vendedores[iV].userId == userFound.tiendas[i].branches[u].ventas[j].userId._id ){
-                            ventasProcesadas = true                        
-                            break
-                        }
-                    }
-                    
-
-                    if(ventasProcesadas==false){
+                console.log(userFound.tiendas[i].branches[u].ventas[j].anulada.anulada)
+                if(userFound.tiendas[i].branches[u].ventas[j].anulada.anulada == false)
+                {                    
+                    console.log("procesoooooooo")
+                    console.log(userFound.tiendas[i].branches[u].ventas[j].totalVta)
+                    let anio=userFound.tiendas[i].branches[u].ventas[j].fechaDeVta.getFullYear()
+                    if(String(anio) == String(req.query.param)){                        
+                        //VOY A REVISAR SI YA PROCESÉ LAS VENTAS PARA EL USUARIO de esta venta
                         
-                        let objVendedores={
-                            userId: userFound.tiendas[i].branches[u].ventas[j].userId._id,
-                            username: userFound.tiendas[i].branches[u].ventas[j].userId.username,
-                            roleName: userFound.tiendas[i].branches[u].ventas[j].userId.roles[0].roleName,
-                            totalVentas: 0,
-                            totalEfectivo: 0,
-                            totalTarjeta: 0,
-                            cantVentas: 0,
-                            cantVentasEfectivo: 0,
-                            cantVentasTerjeta: 0,
-                            cantVtasPagoMixto: 0,
-                        }
-                        totalesAgrupados[i].sucursales[u].vendedores.push(objVendedores)
-                        let index = totalesAgrupados[i].sucursales[u].vendedores.length - 1
-                        const ventasVendedor = userFound.tiendas[i].branches[u].ventas.filter(function(venta){
-
-                            if(venta.userId._id == objVendedores.userId){
-
-                                totalesAgrupados[i].sucursales[u].vendedores[index].totalVentas += venta.totalVta
-                                totalesAgrupados[i].sucursales[u].totalVentas += venta.totalVta
-                                totalesAgrupados[i].totalVentas += venta.totalVta
-
-                                totalesAgrupados[i].sucursales[u].vendedores[index].cantVentas += 1
-                                totalesAgrupados[i].sucursales[u].cantVentas += 1
-                                totalesAgrupados[i].cantVentas += 1
-
-                                if(venta.montoEfectivo >0 ){
-                                    totalesAgrupados[i].sucursales[u].vendedores[index].totalEfectivo += venta.montoEfectivo
-                                    totalesAgrupados[i].sucursales[u].totalEfectivo += venta.montoEfectivo
-                                    totalesAgrupados[i].totalEfectivo += venta.montoEfectivo
-                                }
-                                if(venta.montoTarjeta >0 ){
-                                    totalesAgrupados[i].sucursales[u].vendedores[index].totalTarjeta += venta.montoTarjeta
-                                    totalesAgrupados[i].sucursales[u].totalTarjeta += venta.montoTarjeta
-                                    totalesAgrupados[i].totalTarjeta += venta.montoTarjeta
-                                }
-                                if(venta.montoEfectivo > 0 && venta.montoTarjeta > 0 ){                                                                
-                                    totalesAgrupados[i].sucursales[u].vendedores[index].cantVtasPagoMixto += 1
-                                    totalesAgrupados[i].sucursales[u].cantVtasPagoMixto += 1
-                                    totalesAgrupados[i].cantVtasPagoMixto += 1
-                                } else if(venta.montoEfectivo > 0 && venta.montoTarjeta == 0){
-                                    totalesAgrupados[i].sucursales[u].vendedores[index].cantVentasEfectivo += 1
-                                    totalesAgrupados[i].sucursales[u].cantVentasEfectivo += 1
-                                    totalesAgrupados[i].cantVentasEfectivo += 1
-                                } else if(venta.montoEfectivo == 0 && venta.montoTarjeta > 0){
-                                    totalesAgrupados[i].sucursales[u].vendedores[index].cantVentasTerjeta += 1
-                                    totalesAgrupados[i].sucursales[u].cantVentasTerjeta += 1
-                                    totalesAgrupados[i].cantVentasTerjeta += 1
-                                }
-                                return true
+                        let ventasProcesadas = false
+                        for (let iV = 0; iV < totalesAgrupados[i].sucursales[u].vendedores.length; iV++) {
+                            if(totalesAgrupados[i].sucursales[u].vendedores[iV].userId == userFound.tiendas[i].branches[u].ventas[j].userId._id ){
+                                ventasProcesadas = true                        
+                                break
                             }
-                        })
+                        }
+                        
 
+                        if(ventasProcesadas==false){
+                            
+                            let objVendedores={
+                                userId: userFound.tiendas[i].branches[u].ventas[j].userId._id,
+                                username: userFound.tiendas[i].branches[u].ventas[j].userId.username,
+                                roleName: userFound.tiendas[i].branches[u].ventas[j].userId.roles[0].roleName,
+                                totalVentas: 0,
+                                totalEfectivo: 0,
+                                totalTarjeta: 0,
+                                cantVentas: 0,
+                                cantVentasEfectivo: 0,
+                                cantVentasTerjeta: 0,
+                                cantVtasPagoMixto: 0,
+                            }
+                            totalesAgrupados[i].sucursales[u].vendedores.push(objVendedores)
+                            let index = totalesAgrupados[i].sucursales[u].vendedores.length - 1
+                            const ventasVendedor = userFound.tiendas[i].branches[u].ventas.filter(function(venta){
+
+                                if(venta.userId._id == objVendedores.userId){
+
+                                    totalesAgrupados[i].sucursales[u].vendedores[index].totalVentas += venta.totalVta
+                                    totalesAgrupados[i].sucursales[u].totalVentas += venta.totalVta
+                                    totalesAgrupados[i].totalVentas += venta.totalVta
+
+                                    totalesAgrupados[i].sucursales[u].vendedores[index].cantVentas += 1
+                                    totalesAgrupados[i].sucursales[u].cantVentas += 1
+                                    totalesAgrupados[i].cantVentas += 1
+
+                                    if(venta.montoEfectivo >0 ){
+                                        totalesAgrupados[i].sucursales[u].vendedores[index].totalEfectivo += venta.montoEfectivo
+                                        totalesAgrupados[i].sucursales[u].totalEfectivo += venta.montoEfectivo
+                                        totalesAgrupados[i].totalEfectivo += venta.montoEfectivo
+                                    }
+                                    if(venta.montoTarjeta >0 ){
+                                        totalesAgrupados[i].sucursales[u].vendedores[index].totalTarjeta += venta.montoTarjeta
+                                        totalesAgrupados[i].sucursales[u].totalTarjeta += venta.montoTarjeta
+                                        totalesAgrupados[i].totalTarjeta += venta.montoTarjeta
+                                    }
+                                    if(venta.montoEfectivo > 0 && venta.montoTarjeta > 0 ){                                                                
+                                        totalesAgrupados[i].sucursales[u].vendedores[index].cantVtasPagoMixto += 1
+                                        totalesAgrupados[i].sucursales[u].cantVtasPagoMixto += 1
+                                        totalesAgrupados[i].cantVtasPagoMixto += 1
+                                    } else if(venta.montoEfectivo > 0 && venta.montoTarjeta == 0){
+                                        totalesAgrupados[i].sucursales[u].vendedores[index].cantVentasEfectivo += 1
+                                        totalesAgrupados[i].sucursales[u].cantVentasEfectivo += 1
+                                        totalesAgrupados[i].cantVentasEfectivo += 1
+                                    } else if(venta.montoEfectivo == 0 && venta.montoTarjeta > 0){
+                                        totalesAgrupados[i].sucursales[u].vendedores[index].cantVentasTerjeta += 1
+                                        totalesAgrupados[i].sucursales[u].cantVentasTerjeta += 1
+                                        totalesAgrupados[i].cantVentasTerjeta += 1
+                                    }
+                                    return true
+                                }
+                            })
+                        }
                     }
-                
                 }
-
-            }
-            
+            }           
         }
     }
  
-      
-
-    
    // if(!ventasFound){ console.log("MENSAJE(45646): No existen ventas registradas para la sucursal " + branchId); return false } 
     
     res.status(200).json(totalesAgrupados);
 };
 
 export const getVentasForStatisticsPorSucursal = async (req, res) => {
-    console.log("MENSAJE: Obteniendo ventas for statistics...")
+    console.log("MENSAJE: Obteniendo ventas for statistics por sucursal...")
     //voy a obtener los totales de ventas por tienda y por sucursal
     console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
     
@@ -795,473 +909,475 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
                 }
               //  totalesAgrupados.push(objTienda)
                 for (let v = 0; v < userFound.tiendas[t].branches[b].ventas.length; v++) {
-                    let anio=userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getFullYear() 
-                    let mes = userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getMonth() + 1;
-                    if(String(anio) == String(req.query.yearVentas)){
-                        //TOTAL VENTAS/TRANSAC GENERAL
-                        totalesAgrupados.totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
-                        totalesAgrupados.totalTransacc += 1
-                        //TOTAL VENTAS/TRANSAC GENERAL por forma de pago
-                        if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo > 0){
-                            totalesAgrupados.totalVentasFt += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                            totalesAgrupados.totalTransaccFT += 1 
-                        }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta > 0){
-                            totalesAgrupados.totalVentasTj += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                            totalesAgrupados.totalTransaccTJ += 1 
-                        }                        
-                        switch (mes) {
-                            case 1:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac01 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt01 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT01 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj01 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ01 += 1 
-                                }                                
-                                break;
-                            case 2:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac02 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt02 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT02 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj02 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ02 += 1 
-                                }   
-                                break;                        
-                            case 3:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac03 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt03 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT03 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj03 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ03 += 1 
-                                } 
-                                break;
-                            case 4:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac04 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt04 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT04 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj04 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ04 += 1 
-                                } 
-                                break;
-                            case 5:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac05 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt05 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT05 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj05 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ05 += 1 
-                                } 
-                                break;
-                            case 6:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac06 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt06 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT06 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj06 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ06 += 1 
-                                } 
-                                break;
-                            case 7:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac07 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt07 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT07 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj07 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ07 += 1 
-                                } 
-                                break;
-                            case 8:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac08 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt08 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT08 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj08 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ08 += 1 
-                                } 
-                                break;                        
-                            case 9:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac09 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt09 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT09 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj09 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ09 += 1 
-                                } 
-                                break;
-                            case 10:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac10 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt10 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT10 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj10 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ10 += 1 
-                                } 
-                                break;
-                            case 11:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac11 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt11 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT11 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj11 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ11 += 1 
-                                } 
-                                break;
-                            case 12:
-                                //TOTAL VENTAS/TRANSAC gral del mes
-                                totalesAgrupados.totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totalesAgrupados.totTrasac12 += 1
-                                //TOTAL VENTAS/TRANSAC del mes por forma de pago
-                                if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
-                                    totalesAgrupados.totVtasFt12 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
-                                    totalesAgrupados.totTrasacFT12 += 1 
-                                }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
-                                    totalesAgrupados.totVtasTj12 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
-                                    totalesAgrupados.totTrasacTJ12 += 1 
-                                } 
-                                break;
+                    if(userFound.tiendas[t].branches[b].ventas[v].anulada.anulada == false){
+                        let anio=userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getFullYear() 
+                        let mes = userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getMonth() + 1;
+                        if(String(anio) == String(req.query.yearVentas)){
+                            //TOTAL VENTAS/TRANSAC GENERAL
+                            totalesAgrupados.totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
+                            totalesAgrupados.totalTransacc += 1
+                            //TOTAL VENTAS/TRANSAC GENERAL por forma de pago
+                            if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo > 0){
+                                totalesAgrupados.totalVentasFt += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                totalesAgrupados.totalTransaccFT += 1 
+                            }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta > 0){
+                                totalesAgrupados.totalVentasTj += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                totalesAgrupados.totalTransaccTJ += 1 
+                            }                        
+                            switch (mes) {
+                                case 1:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac01 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt01 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT01 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj01 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ01 += 1 
+                                    }                                
+                                    break;
+                                case 2:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac02 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt02 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT02 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj02 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ02 += 1 
+                                    }   
+                                    break;                        
+                                case 3:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac03 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt03 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT03 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj03 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ03 += 1 
+                                    } 
+                                    break;
+                                case 4:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac04 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt04 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT04 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj04 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ04 += 1 
+                                    } 
+                                    break;
+                                case 5:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac05 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt05 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT05 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj05 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ05 += 1 
+                                    } 
+                                    break;
+                                case 6:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac06 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt06 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT06 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj06 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ06 += 1 
+                                    } 
+                                    break;
+                                case 7:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac07 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt07 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT07 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj07 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ07 += 1 
+                                    } 
+                                    break;
+                                case 8:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac08 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt08 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT08 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj08 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ08 += 1 
+                                    } 
+                                    break;                        
+                                case 9:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac09 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt09 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT09 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj09 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ09 += 1 
+                                    } 
+                                    break;
+                                case 10:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac10 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt10 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT10 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj10 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ10 += 1 
+                                    } 
+                                    break;
+                                case 11:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac11 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt11 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT11 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj11 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ11 += 1 
+                                    } 
+                                    break;
+                                case 12:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    totalesAgrupados.totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totalesAgrupados.totTrasac12 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        totalesAgrupados.totVtasFt12 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        totalesAgrupados.totTrasacFT12 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        totalesAgrupados.totVtasTj12 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        totalesAgrupados.totTrasacTJ12 += 1 
+                                    } 
+                                    break;
 
-                        }
-                        // TOTALES cantidad prod vendidos por producto
-                        for (let pv = 0; pv < userFound.tiendas[t].branches[b].ventas[v].productosVendidos.length; pv++) {
-                            let prodProcesado = false
-                            for (let p = 0; p < totalesAgrupados.productos.length; p++) {
-                                if(String(totalesAgrupados.productos[p].productId) == String(userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].productId)){
-                                    totalesAgrupados.productos[p].totalVendido += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                            }
+                            // TOTALES cantidad prod vendidos por producto
+                            for (let pv = 0; pv < userFound.tiendas[t].branches[b].ventas[v].productosVendidos.length; pv++) {
+                                let prodProcesado = false
+                                for (let p = 0; p < totalesAgrupados.productos.length; p++) {
+                                    if(String(totalesAgrupados.productos[p].productId) == String(userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].productId)){
+                                        totalesAgrupados.productos[p].totalVendido += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                        switch (mes) {
+                                            case 1:                                       
+                                                totalesAgrupados.productos[p].totalVdo01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 2:
+                                                totalesAgrupados.productos[p].totalVdo02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;                        
+                                            case 3:
+                                                totalesAgrupados.productos[p].totalVdo03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 4:
+                                                totalesAgrupados.productos[p].totalVdo04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 5:
+                                                totalesAgrupados.productos[p].totalVdo05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 6:
+                                                totalesAgrupados.productos[p].totalVdo06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 7:
+                                                totalesAgrupados.productos[p].totalVdo07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 8:
+                                                totalesAgrupados.productos[p].totalVdo08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;                        
+                                            case 9:
+                                                totalesAgrupados.productos[p].totalVdo09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 10:
+                                                totalesAgrupados.productos[p].totalVdo10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 11:
+                                                totalesAgrupados.productos[p].totalVdo11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+                                            case 12:
+                                                totalesAgrupados.productos[p].totalVdo12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                                totalesAgrupados.productos[p].totalVdo$12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                                break;
+        
+                                        }
+                                        prodProcesado = true
+                                        break
+                                    }
+                                }
+                                if(prodProcesado == false){
+                                    var objProducto={
+                                        productId: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].productId,
+                                        nombre: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].nombre,
+                                        codigo: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].codigo,
+                                        totalVendido: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad,
+                                        totalVendido$: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total,
+                                        totalVdo01:0,
+                                        totalVdo02:0,
+                                        totalVdo03:0,
+                                        totalVdo04:0,
+                                        totalVdo05:0,
+                                        totalVdo06:0,
+                                        totalVdo07:0,
+                                        totalVdo08:0,
+                                        totalVdo09:0,
+                                        totalVdo10:0,
+                                        totalVdo11:0,
+                                        totalVdo12:0,
+                                        totalVdo$01:0,
+                                        totalVdo$02:0,
+                                        totalVdo$03:0,
+                                        totalVdo$04:0,
+                                        totalVdo$05:0,
+                                        totalVdo$06:0,
+                                        totalVdo$07:0,
+                                        totalVdo$08:0,
+                                        totalVdo$09:0,
+                                        totalVdo$10:0,
+                                        totalVdo$11:0,
+                                        totalVdo$12:0
+                                    }
                                     switch (mes) {
                                         case 1:                                       
-                                            totalesAgrupados.productos[p].totalVdo01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$01 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 2:
-                                            totalesAgrupados.productos[p].totalVdo02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$02 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;                        
                                         case 3:
-                                            totalesAgrupados.productos[p].totalVdo03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$03 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 4:
-                                            totalesAgrupados.productos[p].totalVdo04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$04 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 5:
-                                            totalesAgrupados.productos[p].totalVdo05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$05 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 6:
-                                            totalesAgrupados.productos[p].totalVdo06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$06 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 7:
-                                            totalesAgrupados.productos[p].totalVdo07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$07 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 8:
-                                            totalesAgrupados.productos[p].totalVdo08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$08 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;                        
                                         case 9:
-                                            totalesAgrupados.productos[p].totalVdo09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$09 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 10:
-                                            totalesAgrupados.productos[p].totalVdo10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$10 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 11:
-                                            totalesAgrupados.productos[p].totalVdo11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$11 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
                                         case 12:
-                                            totalesAgrupados.productos[p].totalVdo12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                            totalesAgrupados.productos[p].totalVdo$12 += userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
+                                            objProducto.totalVdo12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
+                                            objProducto.totalVdo$12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
                                             break;
-    
+
                                     }
-                                    prodProcesado = true
+                                    totalesAgrupados.productos.push(objProducto)
+                                }
+                            }
+                            // TOTALES por vendedor
+                            let vendedorProcesado = false
+                            for (let ven = 0; ven < totalesAgrupados.vendedores.length; ven++) {                            
+                                if(String(totalesAgrupados.vendedores[ven].userId) == String(userFound.tiendas[t].branches[b].ventas[v].userId._id)){
+                                    totalesAgrupados.vendedores[ven].totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
+                                    totalesAgrupados.vendedores[ven].totalTransacc += 1
+                                    switch (mes) {
+                                        case 1:
+                                            totalesAgrupados.vendedores[ven].totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac01 += 1
+                                            break;
+                                        case 2:
+                                            totalesAgrupados.vendedores[ven].totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac02 += 1
+                                            break;                        
+                                        case 3:
+                                            totalesAgrupados.vendedores[ven].totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac03 += 1
+                                            break;
+                                        case 4:
+                                            totalesAgrupados.vendedores[ven].totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac04 += 1
+                                            break;
+                                        case 5:
+                                            totalesAgrupados.vendedores[ven].totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac05 += 1
+                                            break;
+                                        case 6:
+                                            totalesAgrupados.vendedores[ven].totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac06 += 1
+                                            break;
+                                        case 7:
+                                            totalesAgrupados.vendedores[ven].totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac07 += 1
+                                            break;
+                                        case 8:
+                                            totalesAgrupados.vendedores[ven].totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac08 += 1
+                                            break;                        
+                                        case 9:
+                                            totalesAgrupados.vendedores[ven].totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac09 += 1
+                                            break;
+                                        case 10:
+                                            totalesAgrupados.vendedores[ven].totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac10 += 1
+                                            break;
+                                        case 11:
+                                            totalesAgrupados.vendedores[ven].totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac11 += 1
+                                            break;
+                                        case 12:
+                                            totalesAgrupados.vendedores[ven].totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                            totalesAgrupados.vendedores[ven].totTrasac12 += 1
+                                            break;
+        
+                                    }
+                                    vendedorProcesado = true
                                     break
                                 }
                             }
-                            if(prodProcesado == false){
-                                var objProducto={
-                                    productId: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].productId,
-                                    nombre: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].nombre,
-                                    codigo: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].codigo,
-                                    totalVendido: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad,
-                                    totalVendido$: userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total,
-                                    totalVdo01:0,
-                                    totalVdo02:0,
-                                    totalVdo03:0,
-                                    totalVdo04:0,
-                                    totalVdo05:0,
-                                    totalVdo06:0,
-                                    totalVdo07:0,
-                                    totalVdo08:0,
-                                    totalVdo09:0,
-                                    totalVdo10:0,
-                                    totalVdo11:0,
-                                    totalVdo12:0,
-                                    totalVdo$01:0,
-                                    totalVdo$02:0,
-                                    totalVdo$03:0,
-                                    totalVdo$04:0,
-                                    totalVdo$05:0,
-                                    totalVdo$06:0,
-                                    totalVdo$07:0,
-                                    totalVdo$08:0,
-                                    totalVdo$09:0,
-                                    totalVdo$10:0,
-                                    totalVdo$11:0,
-                                    totalVdo$12:0
+                            if(vendedorProcesado == false){
+                                var objVendedor={
+                                    userId: userFound.tiendas[t].branches[b].ventas[v].userId._id,
+                                    username: userFound.tiendas[t].branches[b].ventas[v].userId.username,
+                                    roleName: userFound.tiendas[t].branches[b].ventas[v].userId.roles[0].roleName,
+                                    totalVentas: userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    totVtas01:0,
+                                    totVtas02:0,
+                                    totVtas03:0,
+                                    totVtas04:0,
+                                    totVtas05:0,
+                                    totVtas06:0,
+                                    totVtas07:0,
+                                    totVtas08:0,
+                                    totVtas09:0,
+                                    totVtas10:0,
+                                    totVtas11:0,
+                                    totVtas12:0,
+                                    totalTransacc: 1,
+                                    totTrasac01:0,
+                                    totTrasac02:0,
+                                    totTrasac03:0,
+                                    totTrasac04:0,
+                                    totTrasac05:0,
+                                    totTrasac06:0,
+                                    totTrasac07:0,
+                                    totTrasac08:0,
+                                    totTrasac09:0,
+                                    totTrasac10:0,
+                                    totTrasac11:0,
+                                    totTrasac12:0,
                                 }
-                                switch (mes) {
-                                    case 1:                                       
-                                        objProducto.totalVdo01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$01 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 2:
-                                        objProducto.totalVdo02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$02 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;                        
-                                    case 3:
-                                        objProducto.totalVdo03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$03 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 4:
-                                        objProducto.totalVdo04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$04 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 5:
-                                        objProducto.totalVdo05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$05 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 6:
-                                        objProducto.totalVdo06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$06 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 7:
-                                        objProducto.totalVdo07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$07 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 8:
-                                        objProducto.totalVdo08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$08 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;                        
-                                    case 9:
-                                        objProducto.totalVdo09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$09 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 10:
-                                        objProducto.totalVdo10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$10 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 11:
-                                        objProducto.totalVdo11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$11 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-                                    case 12:
-                                        objProducto.totalVdo12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].cantidad
-                                        objProducto.totalVdo$12 = userFound.tiendas[t].branches[b].ventas[v].productosVendidos[pv].total
-                                        break;
-
-                                }
-                                totalesAgrupados.productos.push(objProducto)
-                            }
-                        }
-                        // TOTALES por vendedor
-                        let vendedorProcesado = false
-                        for (let ven = 0; ven < totalesAgrupados.vendedores.length; ven++) {                            
-                            if(String(totalesAgrupados.vendedores[ven].userId) == String(userFound.tiendas[t].branches[b].ventas[v].userId._id)){
-                                totalesAgrupados.vendedores[ven].totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
-                                totalesAgrupados.vendedores[ven].totalTransacc += 1
                                 switch (mes) {
                                     case 1:
-                                        totalesAgrupados.vendedores[ven].totVtas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac01 += 1
+                                        objVendedor.totVtas01 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac01 = 1
                                         break;
                                     case 2:
-                                        totalesAgrupados.vendedores[ven].totVtas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac02 += 1
+                                        objVendedor.totVtas02 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac02 = 1
                                         break;                        
                                     case 3:
-                                        totalesAgrupados.vendedores[ven].totVtas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac03 += 1
+                                        objVendedor.totVtas03 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac03 = 1
                                         break;
                                     case 4:
-                                        totalesAgrupados.vendedores[ven].totVtas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac04 += 1
+                                        objVendedor.totVtas04 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac04 = 1
                                         break;
                                     case 5:
-                                        totalesAgrupados.vendedores[ven].totVtas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac05 += 1
+                                        objVendedor.totVtas05 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac05 = 1
                                         break;
                                     case 6:
-                                        totalesAgrupados.vendedores[ven].totVtas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac06 += 1
+                                        objVendedor.totVtas06 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac06 = 1
                                         break;
                                     case 7:
-                                        totalesAgrupados.vendedores[ven].totVtas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac07 += 1
+                                        objVendedor.totVtas07 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac07 = 1
                                         break;
                                     case 8:
-                                        totalesAgrupados.vendedores[ven].totVtas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac08 += 1
+                                        objVendedor.totVtas08 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac08 = 1
                                         break;                        
                                     case 9:
-                                        totalesAgrupados.vendedores[ven].totVtas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac09 += 1
+                                        objVendedor.totVtas09 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac09 = 1
                                         break;
                                     case 10:
-                                        totalesAgrupados.vendedores[ven].totVtas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac10 += 1
+                                        objVendedor.totVtas10 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac10 = 1
                                         break;
                                     case 11:
-                                        totalesAgrupados.vendedores[ven].totVtas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac11 += 1
+                                        objVendedor.totVtas11 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac11 = 1
                                         break;
                                     case 12:
-                                        totalesAgrupados.vendedores[ven].totVtas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                        totalesAgrupados.vendedores[ven].totTrasac12 += 1
+                                        objVendedor.totVtas12 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                        objVendedor.totTrasac12 = 1
                                         break;
-    
+
                                 }
-                                vendedorProcesado = true
-                                break
+                                totalesAgrupados.vendedores.push(objVendedor)
                             }
-                        }
-                        if(vendedorProcesado == false){
-                            var objVendedor={
-                                userId: userFound.tiendas[t].branches[b].ventas[v].userId._id,
-                                username: userFound.tiendas[t].branches[b].ventas[v].userId.username,
-                                roleName: userFound.tiendas[t].branches[b].ventas[v].userId.roles[0].roleName,
-                                totalVentas: userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                totVtas01:0,
-                                totVtas02:0,
-                                totVtas03:0,
-                                totVtas04:0,
-                                totVtas05:0,
-                                totVtas06:0,
-                                totVtas07:0,
-                                totVtas08:0,
-                                totVtas09:0,
-                                totVtas10:0,
-                                totVtas11:0,
-                                totVtas12:0,
-                                totalTransacc: 1,
-                                totTrasac01:0,
-                                totTrasac02:0,
-                                totTrasac03:0,
-                                totTrasac04:0,
-                                totTrasac05:0,
-                                totTrasac06:0,
-                                totTrasac07:0,
-                                totTrasac08:0,
-                                totTrasac09:0,
-                                totTrasac10:0,
-                                totTrasac11:0,
-                                totTrasac12:0,
-                            }
-                            switch (mes) {
-                                case 1:
-                                    objVendedor.totVtas01 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac01 = 1
-                                    break;
-                                case 2:
-                                    objVendedor.totVtas02 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac02 = 1
-                                    break;                        
-                                case 3:
-                                    objVendedor.totVtas03 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac03 = 1
-                                    break;
-                                case 4:
-                                    objVendedor.totVtas04 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac04 = 1
-                                    break;
-                                case 5:
-                                    objVendedor.totVtas05 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac05 = 1
-                                    break;
-                                case 6:
-                                    objVendedor.totVtas06 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac06 = 1
-                                    break;
-                                case 7:
-                                    objVendedor.totVtas07 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac07 = 1
-                                    break;
-                                case 8:
-                                    objVendedor.totVtas08 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac08 = 1
-                                    break;                        
-                                case 9:
-                                    objVendedor.totVtas09 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac09 = 1
-                                    break;
-                                case 10:
-                                    objVendedor.totVtas10 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac10 = 1
-                                    break;
-                                case 11:
-                                    objVendedor.totVtas11 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac11 = 1
-                                    break;
-                                case 12:
-                                    objVendedor.totVtas12 = userFound.tiendas[t].branches[b].ventas[v].totalVta,
-                                    objVendedor.totTrasac12 = 1
-                                    break;
 
-                            }
-                            totalesAgrupados.vendedores.push(objVendedor)
                         }
-
                     }
                 }
                 
@@ -1271,4 +1387,14 @@ export const getVentasForStatisticsPorSucursal = async (req, res) => {
         }
     }
     res.status(200).json(totalesAgrupados);
+}
+
+export const getVentasForStatisticsPorTienda = async (req, res) => {
+    console.log("MENSAJE: Obteniendo ventas for statistics por tienda...")
+    //voy a obtener los totales de ventas por tienda y por sucursal
+    console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    
+    console.log(req.query.branchId)
+    console.log(req.query.yearVentas)
+    console.log(req.query)
 }

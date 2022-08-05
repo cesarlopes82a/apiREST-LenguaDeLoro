@@ -131,6 +131,20 @@ export const registrarNuevaLDP = async(req,res) => {
   if(!listadeprecios.fechaDeCreacion) return res.status(400).json("ERROR: No fechaDeCreacion. fechaDeCreacion Expected - Imposible registrar nueva lista de precios");
   if(!listadeprecios.storeId) return res.status(400).json("ERROR: No storeId. storeId Expected - Imposible registrar nueva lista de precios");
 
+  //tengo que verificar si lo que me pasan como storeId es realmente el storeId o es una branchId para buscar su storeId
+  const storeFound = await config.globalConnectionStack[dbuserid].store.findById(listadeprecios.storeId);
+  console.log("---------las storeFound")
+  console.log(storeFound)
+  if(storeFound){
+    console.log(storeFound)
+  }else{
+    const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(listadeprecios.storeId);
+    console.log("---------las branchFound")
+    console.log(branchFound)
+    if(branchFound){
+      listadeprecios.storeId=branchFound.storeId
+    }
+  }
 
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
@@ -153,7 +167,7 @@ export const registrarNuevaLDP = async(req,res) => {
               if(!response){
                 // hay que hacer un rolback y eliminar el registro de LDP
                 console.log("ERROR: Ha ocurrido un error al intentar asosciar la lista de precios " + newLDPs._id + " a la store " + listadeprecios.storeId)
-                console.log(("MENSAJE: Intentando eliminar lista de precios ID: " + newLDPs))
+              /*  console.log(("MENSAJE: Intentando eliminar lista de precios ID: " + newLDPs))
                 const registroEliminado = deleteListadeprecios(dbuserid, newLDPs._id)
                 registroEliminado.then((response)=>{
                   if(response){
@@ -162,6 +176,7 @@ export const registrarNuevaLDP = async(req,res) => {
                     return res.status(500).json("ERROR: No se ha podido crear la nueva lista de precios. No se pudo eliminar el registro creado " + newLDPs._id);
                   }
                 })
+                */
                 
               }else{
                 console.log("SUCCESSFULL: La lista de precios " + newLDPs._id + " ha sido asociada exitosamente a la Tienda " + listadeprecios.storeId)
