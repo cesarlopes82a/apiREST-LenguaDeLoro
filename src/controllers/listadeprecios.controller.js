@@ -330,6 +330,73 @@ export const setDefaultStoreLDP = async(req,res) => {
     console.error(error);
   }
 
+}
+
+export const eliminarListaDP = async(req,res) => {
+  console.log("MENSAJE: Iniciando proceso de liminacion de lista de precios...")
+  console.log(req.query.storeId)
+  console.log(req.query.listaId)
+
   
 
+  const dbuserid = req.userDB;
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+      console.log("ERROR: dbuserid formato inválido. Imposible obtener ventas!")
+      return res.status(400).json("ERROR: dbuserid formato inválido. Imposible obtener ventas!");
+  } 
+  if(!dbuserid){
+      console.log("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!")    
+      return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!");
+  }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  const listaId = req.query.listaId
+  if (!String(listaId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: listaId formato inválido. Imposible eliminar lista de precios!")
+    return res.status(400).json("ERROR: listaId formato inválido. Imposible eliminar lista de precios!");
+  } 
+
+  const listaFound = await config.globalConnectionStack[dbuserid].listadeprecios.findById(listaId)
+  if(!listaFound){
+      console.log("ERROR: No listaFound. userId Expected - Imposible eliminar lista de precios!")
+      return res.status(400).json("ERROR: No listaFound. listaFound Expected - Imposible eliminar lista de precios!");
+  } 
+
+  const ldpAssignedAsDefInBranch = await config.globalConnectionStack[dbuserid].branch.find({defaultListaDP:listaId})
+  if(ldpAssignedAsDefInBranch.length > 0){
+    console.log("ERROR: La lista de precios no puede ser eliminada ya que se encuentra asignada como ldp Default de una Sucursal!")
+    return res.status(405).json("ERROR: La lista de precios no puede ser eliminada. Se encuentra asignada como ldp Default de una Sucursal");
+  } 
+  
+  const ldpAssignedAsDefInStore = await config.globalConnectionStack[dbuserid].store.find({defaultListaDP:listaId})
+  if(ldpAssignedAsDefInStore.length > 0){
+    console.log("ERROR: La lista de precios no puede ser eliminada ya que se encuentra asignada como ldp Default de una Tienda!")
+    return res.status(405).json("ERROR: La lista de precios no puede ser eliminada. Se encuentra asignada como ldp Default de una Tienda");
+  } 
+
+  try {
+    const listaDeleted = await config.globalConnectionStack[dbuserid].listadeprecios.findByIdAndDelete(listaId, function (err, docs) {
+      if (err){
+        console.log("ERROR: eliminarListaDP("+ listaId +") - Ha ocurrido un error al intentar eliminar la lista de precios")    
+        console.log(error)
+        return res.status(500).json("ERROR: eliminarListaDP("+ listaId +") - Ha ocurrido un error al intentar eliminar la lista de precios");
+      }
+      else{
+          console.log("ELIMINADO : ", docs);
+        //  return res.status(400).json("ERROR(68623): compraAsociadaSucursal=false - La operacion de registro de compra no pudo ser completada!");
+      }
+  });
+    
+  } catch (error) {
+    console.log("ERROR: eliminarListaDP("+ listaId +") - Ha ocurrido un error al intentar eliminar la lista de precios")    
+    console.log(error)
+    return res.status(500).json("ERROR: eliminarListaDP("+ listaId +") - Ha ocurrido un error al intentar eliminar la lista de precios");
+  }
+
+  return res.status(200).json(true)
+
 }
+

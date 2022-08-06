@@ -614,7 +614,12 @@ export const ajustarStock = async(req,res) => {
 
 
     //defino el objAjuste con el detalle del ajuste para este producto
-    let fechaActual =  new Date().toISOString().slice(0, 19).replace('T', ' ')
+    let fechaActual =  new Date()
+    fechaActual.toLocaleString('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+    }),
+    fechaActual = fechaActual.toISOString().slice(0, 19).replace('T', ' ')
+    
    
     let objAjuste = {
       fechaAjuste: fechaActual,

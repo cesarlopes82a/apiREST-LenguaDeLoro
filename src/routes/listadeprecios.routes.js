@@ -25,6 +25,11 @@ router.post(
   listadpCtrl.setDefaultStoreLDP
 );
 
+router.delete(
+  "/eliminarListaDP",
+  [authJwt.verifyToken, [authJwt.isAdminMaster || authJwt.isAdminGlobal || authJwt.isAdminTienda]],
+  listadpCtrl.eliminarListaDP
+);
 
 
 
