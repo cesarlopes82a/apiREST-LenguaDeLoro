@@ -53,6 +53,10 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "ListaDePrecios",
       default: null,
+    },
+    activated:{
+      type: Boolean,
+      default: true
     }
   },
   {

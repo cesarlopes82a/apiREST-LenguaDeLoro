@@ -527,7 +527,8 @@ export const getStockByBranchId = async(req,res) => {
   }
 }
 export const ajustarStock = async(req,res) => {
-  console.log("MENSAJE: ajustarStock()")
+
+  console.log("MENSAJE: ajustarStock() - Iniciando proceso...")
 
   const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
   if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
@@ -560,7 +561,7 @@ export const ajustarStock = async(req,res) => {
   }
 
   const productId = req.body.productId
-  if (!String(branchId).match(/^[0-9a-fA-F]{24}$/)){
+  if (!String(productId).match(/^[0-9a-fA-F]{24}$/)){
     console.log("ERROR: ajustarStock() - productId formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid + " - branchId: " + branchId)
     return res.status(400).json("ERROR: ajustarStock() - productId formato inválido. Imposible ajustar stock!. dbuserid:" + dbuserid+ " - branchId: " + branchId);
   } 

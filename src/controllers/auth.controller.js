@@ -103,6 +103,15 @@ export const signin = async (req, res) => {
       token: null,
       message: "Invalid Password",
     });
+
+    //VERIFICO SI LA CUENTA NO HA SIDO DESACTIVADA
+    if(userFoundInDBuser.activated == false){
+      console.log("WARNING: User Login Unauthorized! (deactivated) - userName: " + userName + " - adminMasterDBuser: " + userFoundInDBuser.adminMasterDBuser)
+      return res.status(401).json("WARNING: User Login Unauthorized! (deactivated) - userName: " + userName + " - adminMasterDBuser: " + userFoundInDBuser.adminMasterDBuser);
+    }
+    
+
+
     //console.log("ESTO ES EL ROLE QUE CARGARIA EN EL TOKEN: " + userFoundInDBuser.roles[0].roleName)
     const token = jwt.sign({ id:userFoundInDBuser._id, email: userFound.email, userDB: userFound._id, role: userFoundInDBuser.roles[0].roleName, username:userName}, config.SECRET, {
       expiresIn: 86400, // 24 hours

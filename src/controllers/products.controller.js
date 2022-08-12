@@ -165,6 +165,81 @@ export const getProductsForLDP = async (dbuserid) => {
   return productsFound;
 };
 
+export const changeStatusProductById = async(req,res) => {
+
+  console.log("MENSAJE: changeStatusProductById() - Iniciando proceso...")
+
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: changeStatusProductById() - dbuserid formato inválido. Imposible cambiar estado del producto!")
+    return res.status(400).json("ERROR: changeStatusProductById() - dbuserid formato inválido. Imposible cambiar estado del producto!");
+  } 
+  if(!dbuserid){
+    console.log("ERROR: changeStatusProductById() - No dbuserid. dbuserid Expected - Imposible cambiar estado del producto!")    
+    return res.status(400).json("ERROR: changeStatusProductById() - No dbuserid. dbuserid Expected - Imposible cambiar estado del producto!");
+  } 
+
+  const userId = req.userId
+  if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: changeStatusProductById() - userId formato inválido. Imposible cambiar estado del producto!")
+    return res.status(400).json("ERROR: changeStatusProductById() - userId formato inválido. Imposible cambiar estado del producto!");
+  } 
+  if(!userId){
+    console.log("ERROR: changeStatusProductById() - No userId. dbuserid Expected - Imposible cambiar estado del producto!")    
+    return res.status(400).json("ERROR: changeStatusProductById() - No userId. dbuserid Expected - Imposible cambiar estado del producto!");
+  } 
+
+  const productId = req.params.productId
+  if (!String(productId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: changeStatusProductById() - productId formato inválido. Imposible cambiar estado del producto!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: changeStatusProductById() - productId formato inválido. Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  } 
+  if(!productId){
+    console.log("ERROR: changeStatusProductById() - No productId. productId Expected - Imposible cambiar estado del producto!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: changeStatusProductById() - No productId. productId Expected - Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+
+  const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId)
+  if(!productFound) {
+    console.log("ERROR: changeStatusProductById() - Error al obtener productId: " + productId +". Imposible cambiar estado del producto!. dbuserid:" + dbuserid )
+    return res.status(500).json("ERROR: changeStatusProductById() - Error al obtener productId: " + productId +". Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  }
+
+  let fechaActual =  new Date().toISOString().slice(0, 19).replace('T', ' ')
+
+  productFound.desactivado.desactivadoPor = userId;
+  productFound.desactivado.desactivadoFecha = fechaActual
+
+  if(productFound.desactivado.estado == false){
+    productFound.desactivado.estado = true;    
+  } else{
+    productFound.desactivado.estado = false
+  }
+
+  try {
+    const productUpdated = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
+      productId,
+      productFound,
+      {
+        new: true,
+      }
+    )
+    if(productUpdated){
+      console.log("MENSAJE: Estado de productId: " + productId + " actualizado exitosamente!! - dbuserid: " + dbuserid )
+      return res.status(200).json(productUpdated.desactivado);
+    }
+  } catch (error) {
+    console.log(error)
+    console.log("ERROR: Ha ocurrido al intentar actualizar el estado del productId. " + productId + " - dbuserid: " + dbuserid )
+    return res.status(500).json("ERROR: Ha ocurrido al intentar actualizar el estado del productId. " + productId + " - dbuserid: " + dbuserid )
+  }
+
+  
+}
 
 export const updateProductById = async (req, res) => {
   const updatedProduct = await Product.findByIdAndUpdate(

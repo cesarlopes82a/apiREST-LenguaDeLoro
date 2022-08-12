@@ -30,4 +30,10 @@ router.delete(
   productsCtrl.deleteProductById
 );
 
+router.post(
+  "/chStatus/:productId",
+  [ authJwt.verifyToken, authJwt.isAdminMaster ],
+  productsCtrl.changeStatusProductById
+  );
+
 export default router;
