@@ -72,13 +72,14 @@ export const codigoCargado = async (dbuserid, codigo, storeId) => {
   }
 }
 
+/*
 export const getProductById = async (req, res) => {
   const { productId } = req.params;
 
   const product = await Product.findById(productId);
   res.status(200).json(product);
 };
-
+*/
 
 export const getProductosByStoreId = async (req, res) => {
   const dbuserid = req.userDB;
@@ -137,16 +138,26 @@ export const getProductosByStoreIdAndPopulate = async (req, res) => {
 };
 
 export const getProducts = async (req, res) => {
-  
   const dbuserid = req.userDB;
   console.log("getProducts " + dbuserid )
   if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
     await userconnection.checkandcreateUserConnectionStack(dbuserid);
   }
-
   const productsFound = await config.globalConnectionStack[dbuserid].product.find();
   res.status(200).json(productsFound);
+};
 
+export const getProductById = async (req, res) => {
+  console.log("MENSAJE: ProductController - getProductById...")
+  const dbuserid = req.userDB;  
+  let productId = req.params.productId;
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+  const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId)
+  .populate("categoriaRubro");
+  res.status(200).json(productFound);
 };
 
 
@@ -164,6 +175,77 @@ export const getProductsForLDP = async (dbuserid) => {
   }
   return productsFound;
 };
+
+
+export const postUpdateProducto = async(req,res) => {
+  console.log("MENSAJE: postUpdateProducto() - Iniciando proceso...")
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProducto() - dbuserid formato inválido. Imposible cambiar estado del producto!")
+    return res.status(400).json("ERROR: postUpdateProducto() - dbuserid formato inválido. Imposible cambiar estado del producto!");
+  } 
+  if(!dbuserid){
+    console.log("ERROR: postUpdateProducto() - No dbuserid. dbuserid Expected - Imposible cambiar estado del producto!")    
+    return res.status(400).json("ERROR: postUpdateProducto() - No dbuserid. dbuserid Expected - Imposible cambiar estado del producto!");
+  } 
+
+  const userId = req.userId
+  if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProducto() - userId formato inválido. Imposible cambiar estado del producto!")
+    return res.status(400).json("ERROR: postUpdateProducto() - userId formato inválido. Imposible cambiar estado del producto!");
+  } 
+  if(!userId){
+    console.log("ERROR: postUpdateProducto() - No userId. dbuserid Expected - Imposible cambiar estado del producto!")    
+    return res.status(400).json("ERROR: postUpdateProducto() - No userId. dbuserid Expected - Imposible cambiar estado del producto!");
+  } 
+
+  console.log(req.params)
+  console.log(req.body)
+
+  const productId = req.params.productId
+  if (!String(productId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProducto() - productId formato inválido. Imposible cambiar estado del producto!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: postUpdateProducto() - productId formato inválido. Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  } 
+  if(!productId){
+    console.log("ERROR: postUpdateProducto() - No productId. productId Expected - Imposible cambiar estado del producto!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: postUpdateProducto() - No productId. productId Expected - Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+
+  const productFound = await config.globalConnectionStack[dbuserid].product.findById(productId)
+  if(!productFound) {
+    console.log("ERROR: postUpdateProducto() - Error al obtener productId: " + productId +". Imposible cambiar estado del producto!. dbuserid:" + dbuserid )
+    return res.status(500).json("ERROR: postUpdateProducto() - Error al obtener productId: " + productId +". Imposible cambiar estado del producto!. dbuserid:" + dbuserid);
+  }
+
+
+  productFound.productName = req.body.productName
+  productFound.unidadMedida = req.body.unidadMedida
+  productFound.categoriaRubro = req.body.categoria
+
+  try {
+    const productUpdated = await config.globalConnectionStack[dbuserid].product.findByIdAndUpdate(
+      productId,
+      productFound,
+      {
+        new: true,
+      }
+    )
+    if(productUpdated){
+      console.log("MENSAJE: productId: " + productId + " actualizado exitosamente!! - dbuserid: " + dbuserid )
+      return res.status(200).json(productUpdated.desactivado);
+    }
+  } catch (error) {
+    console.log(error)
+    console.log("ERROR: Ha ocurrido al intentar actualizar productId. " + productId + " - dbuserid: " + dbuserid )
+    return res.status(500).json("ERROR: Ha ocurrido al intentar actualizar productId. " + productId + " - dbuserid: " + dbuserid )
+  }
+
+}
 
 export const changeStatusProductById = async(req,res) => {
 

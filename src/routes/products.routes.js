@@ -6,9 +6,11 @@ import { authJwt } from "../middlewares";
 
 router.get("/", [authJwt.verifyToken], productsCtrl.getProducts);
 
-router.get("/:productId", productsCtrl.getProductById);
+//router.get("/:productId", productsCtrl.getProductById);
 
 router.get("/store/:storeId",[authJwt.verifyToken], productsCtrl.getProductosByStoreId);
+
+router.get("/productId/:productId",[authJwt.verifyToken], productsCtrl.getProductById);
 
 router.get("/storep/:storeId",[authJwt.verifyToken], productsCtrl.getProductosByStoreIdAndPopulate);
 
@@ -34,6 +36,12 @@ router.post(
   "/chStatus/:productId",
   [ authJwt.verifyToken, authJwt.isAdminMaster ],
   productsCtrl.changeStatusProductById
-  );
+);
+
+router.post(
+  "/updateProducto/:productId",
+  [ authJwt.verifyToken, authJwt.isAdminMaster ],
+  productsCtrl.postUpdateProducto
+);
 
 export default router;
