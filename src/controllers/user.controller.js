@@ -57,7 +57,133 @@ export const createUser = async (req, res) => {
   }
 };
 
+export const changePassword = async (req, res) => {
 
+  console.log("MENSAJE: userControler - changePassword()...")
+
+  const dbuserid = req.userDB
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: dbuserid formato inválido. Imposible cambiar el passowrd!")
+    return res.status(400).json("ERROR: dbuserid formato inválido. Imposible cambiar el passowrd!");
+  } 
+  if(!dbuserid){
+      console.log("ERROR: No dbuserid. dbuserid Expected - Imposible cambiar el passowrd!")    
+      return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible cambiar el passowrd!");
+  }
+
+  const { userTargetId, password } = req.body;
+
+  console.log("-------------")
+  console.log(userTargetId)
+
+  if (!String(userTargetId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: userTargetId formato inválido. Imposible cambiar el passowrd!")
+    return res.status(400).json("ERROR: userTargetId formato inválido. Imposible cambiar el passowrd!");
+  } 
+  if(!userTargetId){
+      console.log("ERROR: No userTargetId. userTargetId Expected - Imposible cambiar el passowrd!")    
+      return res.status(400).json("ERROR: No userTargetId. userTargetId Expected - Imposible cambiar el passowrd!");
+  }
+
+  if(!password){
+    console.log("ERROR: No password. password Expected - Imposible cambiar el passowrd!")    
+    return res.status(400).json("ERROR: No password. password Expected - Imposible cambiar el passowrd!");
+  }
+
+  //busco al usuario target a quien intento cambiarle el password
+  const userTargetFound = await config.globalConnectionStack[dbuserid].user.findById(userTargetId)
+  if(!userTargetFound) {
+    console.log("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible cambiar el passowrd!")
+    return res.status(403).json("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible cambiar el passowrd!");
+  }
+
+  // encrypting password
+  userTargetFound.password = await config.globalConnectionStack[dbuserid].user.encryptPassword(password);
+
+
+  try {
+      
+    const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+      userTargetId,
+      userTargetFound,
+      {
+        new: true,
+      }
+    );
+
+  } catch (error) {
+    console.log("changePassword() - ERROR(234): Hubo un error al intentar actualizar password para userTargetId: " + userTargetId)
+    console.log(error)
+    return res.status(403).json("changePassword() - ERROR(234): Hubo un error al intentar actualizar password para userTargetId: " + userTargetId);    
+  }
+
+  console.log("MENSAJE: changePassword() - password actualizado con exito para userTargetId: " + userTargetId)
+  return res.status(200).json("successfully")
+};
+
+export const activarDesactivarCuenta = async (req, res) => {
+  console.log("MENSAJE: userControler - activarDesactivarCuenta()...")
+
+  const dbuserid = req.userDB
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: dbuserid formato inválido. Imposible proceder!")
+    return res.status(400).json("ERROR: dbuserid formato inválido. Imposible proceder!");
+  } 
+  if(!dbuserid){
+      console.log("ERROR: No dbuserid. dbuserid Expected - Imposible proceder!")    
+      return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible proceder!");
+  }
+
+  const { userTargetId } = req.body;
+
+  console.log("-------------")
+  console.log(userTargetId)
+
+  if (!String(userTargetId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: userTargetId formato inválido. Imposible proceder!")
+    return res.status(400).json("ERROR: userTargetId formato inválido. proceder!");
+  } 
+  if(!userTargetId){
+      console.log("ERROR: No userTargetId. userTargetId Expected - Imposible proceder!")    
+      return res.status(400).json("ERROR: No userTargetId. userTargetId Expected - Imposible proceder!");
+  }
+
+  
+  //busco al usuario target a quien intento cambiarle el password
+  const userTargetFound = await config.globalConnectionStack[dbuserid].user.findById(userTargetId)
+  if(!userTargetFound) {
+    console.log("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible proceder!")
+    return res.status(403).json("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible proceder!");
+  }
+
+  if(userTargetFound.activated == true){
+    userTargetFound.activated = false
+  }else{
+    if(userTargetFound.activated == false){
+      userTargetFound.activated = true
+    }
+  }
+  
+  try {
+      
+    const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+      userTargetId,
+      userTargetFound,
+      {
+        new: true,
+      }
+    );
+
+  } catch (error) {
+    console.log("activarDesactivarCuenta() - ERROR(234): Hubo un error al intentar actualizar userTargetId: " + userTargetId)
+    console.log(error)
+    return res.status(403).json("activarDesactivarCuenta() - ERROR(234): Hubo un error al intentar actualizar userTargetId: " + userTargetId);    
+  }
+
+  console.log("MENSAJE: activarDesactivarCuenta() - actualizado con exito para userTargetId: " + userTargetId)
+  return res.status(200).json(userTargetFound.activated)
+
+}
 
 export const getUserById = async (req, res) => {
   const  userId = req.params.userId;

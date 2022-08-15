@@ -92,8 +92,12 @@ export const signin = async (req, res) => {
 
     //aca me voy a fijar si existe el usuario que intenta loguearse en la db del adminMaster
     await userconnection.checkandcreateUserConnectionStack(userFound._id);
+
     const userFoundInDBuser = await config.globalConnectionStack[userFound._id].user.findOne({ username: userName }).populate("roles");
     if(!userFoundInDBuser) return res.status(400).json({ message: "User " + userName + " Not Found in " + email + " database" });
+
+      console.log("--------------")
+      console.log(password + " - " + userFoundInDBuser.password)
 
     const matchPassword = await config.globalConnectionStack[userFound._id].user.comparePassword(
       password,

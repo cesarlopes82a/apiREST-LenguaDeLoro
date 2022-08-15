@@ -49,18 +49,12 @@ router.get("/:storeId", [authJwt.verifyToken],usersCtrl.getUsersByStoreId);
 
 router.post(
   "/addUserStoreByID",
-  [
-    authJwt.verifyToken,
-    authJwt.isAdminMaster
-  ],
+  [ authJwt.verifyToken, authJwt.isAdminMaster ],
   usersCtrl.addUserStoreByID
 );
 router.post(
   "/addStoreToUserFromRoute",
-  [
-    authJwt.verifyToken,
-    authJwt.isAdminMaster
-  ],
+  [ authJwt.verifyToken, authJwt.isAdminMaster ],
   usersCtrl.addStoreToUserFromRoute
 );
 router.post(
@@ -76,13 +70,23 @@ router.post(
 );
 router.post(
   "/reasignarTiendas",
-  [
-  authJwt.verifyToken,
-  authJwt.isAdminMaster,
-  ],
+  [ authJwt.verifyToken, authJwt.isAdminMaster, ],
   usersCtrl.reasignarTiendasToUser
 
+);
+router.post(
+  "/changePassword",
+  [ authJwt.verifyToken, authJwt.isAdminMaster,],
+  usersCtrl.changePassword
+);
+router.post(
+  "/activarDesactivarCuenta",
+  [ authJwt.verifyToken, authJwt.isAdminMaster,],
+  usersCtrl.activarDesactivarCuenta
 )
+
+
+
 
 
 export default router;
