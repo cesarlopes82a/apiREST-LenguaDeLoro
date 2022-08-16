@@ -92,14 +92,19 @@ export const changePassword = async (req, res) => {
 
   //busco al usuario target a quien intento cambiarle el password
   const userTargetFound = await config.globalConnectionStack[dbuserid].user.findById(userTargetId)
+  .populate("roles")
   if(!userTargetFound) {
     console.log("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible cambiar el passowrd!")
     return res.status(403).json("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible cambiar el passowrd!");
   }
 
+  if(userTargetFound.roles[0].roleName=="adminMaster"){
+    console.log("(45623)ERROR: userTargetId: "+userTargetId+" es adminMaster - dbuserid: "+dbuserid+". - Imposible proceder!")
+    return res.status(403).json("(45623)ERROR: userTargetId: "+userTargetId+" es adminMaster - dbuserid: "+dbuserid+". - Imposible proceder!");
+  }
+
   // encrypting password
   userTargetFound.password = await config.globalConnectionStack[dbuserid].user.encryptPassword(password);
-
 
   try {
       
@@ -151,9 +156,18 @@ export const activarDesactivarCuenta = async (req, res) => {
   
   //busco al usuario target a quien intento cambiarle el password
   const userTargetFound = await config.globalConnectionStack[dbuserid].user.findById(userTargetId)
+  .populate("roles")
   if(!userTargetFound) {
     console.log("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible proceder!")
     return res.status(403).json("(45675)ERROR: userTargetId: "+userTargetId+" No encontrado en dbuserid: "+dbuserid+". - Imposible proceder!");
+  }
+
+  console.log("------------------------------")
+  console.log(userTargetFound.roles[0].roleName)
+
+  if(userTargetFound.roles[0].roleName=="adminMaster"){
+    console.log("(45623)ERROR: userTargetId: "+userTargetId+" es adminMaster - dbuserid: "+dbuserid+". - Imposible proceder!")
+    return res.status(403).json("(45623)ERROR: userTargetId: "+userTargetId+" es adminMaster - dbuserid: "+dbuserid+". - Imposible proceder!");
   }
 
   if(userTargetFound.activated == true){
