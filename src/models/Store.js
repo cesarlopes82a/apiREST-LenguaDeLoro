@@ -26,6 +26,9 @@ const storeSchema = new Schema(
       ref: "ListaDePrecios",
       default: null,
     },
+    categoriaRubro: [{ 
+      type: Schema.Types.ObjectId,
+      ref: "Category", }],
     createdBy:{
       type: Schema.Types.ObjectId,
       ref: "User",
