@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 
 import pkg from "../package.json";
 
+import imagesRoutes from "./routes/images.routes"
 import productRoutes from "./routes/products.routes";
 import categoriesRoutes from "./routes/categories.routes"
 import storesRoutes from "./routes/stores.routes"
@@ -92,7 +93,16 @@ app.get("/", (req, res) => {
   });
 });
 
+//Frontend Images 
+/*
+app.get('/image', function(req, res, next) {
+  res.writeHead(200,{'content-type':'image/jpg'});
+  fs.createReadStream(__dirname + '/public/images/miImagen.jpg').pipe(res);
+});
+*/
+
 // Routes
+app.use("/api/images", imagesRoutes)
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/stores",storesRoutes);
@@ -103,6 +113,7 @@ app.use("/api/proveedor", proveedorRoutes);
 app.use("/api/compras", comprasRoutes);
 app.use("/api/ldp", ldpRoutes)
 app.use("/api/ventas", ventasRoutes)
+
 
 
 
