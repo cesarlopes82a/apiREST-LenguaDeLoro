@@ -6,35 +6,35 @@ import { authJwt, branchChecks } from "../middlewares";
 
 router.get("/", branchCtrl.getBranches);
 
-router.get("/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchById);
+router.get("/:branchId", authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ], branchCtrl.getBranchById);
 
-router.get("/stock/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getStockByBranchId);
+router.get("/stock/:branchId", authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ], branchCtrl.getStockByBranchId);
 
-router.get("/bystoreId/:storeId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchesByStoreId);
+router.get("/bystoreId/:storeId", authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ], branchCtrl.getBranchesByStoreId);
 
-router.get("/bybranchId/:branchId", authJwt.verifyToken, authJwt.isAdminMaster, branchCtrl.getBranchesByBranchId);
+router.get("/bybranchId/:branchId", authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ], branchCtrl.getBranchesByBranchId);
 
 router.post(
   "/createBranch",
-  [ authJwt.verifyToken, authJwt.isAdminMaster, branchChecks.checkBranchNameExistsInStore],
+  [ authJwt.verifyToken, [ authJwt.isAdminMaster || authJwt.isAdminGlobal ], branchChecks.checkBranchNameExistsInStore],
   branchCtrl.createBranch
 );
 
 router.post(
 "/ajustarStock/:branchId",
-[ authJwt.verifyToken, authJwt.isAdminMaster ],
+[ authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ] ],
 branchCtrl.ajustarStock
 );
   
 router.put(
   "/:branchId",
-  [authJwt.verifyToken, authJwt.isAdminMaster],
+  [authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ]],
   branchCtrl.updateBranchById
 );
   
 router.delete(
   "/:branchId",
-  [authJwt.verifyToken, authJwt.isAdminMaster],
+  [authJwt.verifyToken, [ authJwt.isAdminMasterGlobalOrTienda ]],
   branchCtrl.deleteBranchById
 );
 

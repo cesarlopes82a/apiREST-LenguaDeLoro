@@ -1048,8 +1048,7 @@ export const createVendedorUser = async (req, res) => {
     console.log("vamos a crear el user")
     const { username, password, roles, branchId} = req.body;
 
-    console.log("INTENTANDO CREAR UN vendedor USER - createVendedorUser()")
-    //console.log("en esta tienda: " + storeId)
+    console.log("MENSAJE: INTENTANDO CREAR UN vendedor USER - createVendedorUser()")
     
     if(!username) return res.status(401).json({ message: "createVendedorUser: User name expected" });
     if(!password) return res.status(401).json({ message: "createVendedorUser: password expected" });
