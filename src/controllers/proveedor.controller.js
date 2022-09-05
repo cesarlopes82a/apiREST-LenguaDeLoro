@@ -62,6 +62,22 @@ export const getProveedores = async (req, res) => {
     res.status(200).json(proveedoresFound);
  
 };
+
+
+export const getProveedorById = async (req, res) => {
+  
+  const dbuserid = req.userDB;
+  let proveedorId = req.params.proveedorId;
+  console.log("getProveedorById " + dbuserid )
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  const proveedorFound = await config.globalConnectionStack[dbuserid].proveedor.findById(proveedorId)
+  .populate("categoriaRubro");
+  res.status(200).json(proveedorFound);
+
+};
 export const proveedorNameCargado = async (dbuserid, proveedorName) => {
     console.log("vengo a verificar si el proveedor ya existe " + proveedorName)
     // me traigo toda la lista de branches que tiene agregada la tienda y la buardo dentro del "array branches"
@@ -78,4 +94,73 @@ export const proveedorNameCargado = async (dbuserid, proveedorName) => {
     } else{
       return false
     }
+}
+
+export const postUpdateProveedor = async(req,res) => {
+  console.log("MENSAJE: postUpdateProveedor() - Iniciando proceso...")
+  const dbuserid = req.userDB;  //dbuserid me dice en que db tengo que escribir
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProveedor() - dbuserid formato inválido. Imposible actualizar proveedor!")
+    return res.status(400).json("ERROR: postUpdateProveedor() - dbuserid formato inválido. Imposible actualizar proveedor!");
+  } 
+  if(!dbuserid){
+    console.log("ERROR: postUpdateProveedor() - No dbuserid. dbuserid Expected - Imposible actualizar proveedor!")    
+    return res.status(400).json("ERROR: postUpdateProveedor() - No dbuserid. dbuserid Expected - Imposible actualizar proveedor!");
+  } 
+
+  const userId = req.userId
+  if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProveedor() - userId formato inválido. Imposible actualizar proveedor!")
+    return res.status(400).json("ERROR: postUpdateProveedor() - userId formato inválido. Imposible actualizar proveedor!");
+  } 
+  if(!userId){
+    console.log("ERROR: postUpdateProveedor() - No userId. dbuserid Expected - Imposible actualizar proveedor!")    
+    return res.status(400).json("ERROR: postUpdateProveedor() - No userId. dbuserid Expected - Imposible actualizar proveedor!");
+  } 
+
+  const proveedorId = req.params.proveedorId
+  if (!String(proveedorId).match(/^[0-9a-fA-F]{24}$/)){
+    console.log("ERROR: postUpdateProveedor() - proveedorId formato inválido. Imposible actualizar proveedor!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: postUpdateProveedor() - proveedorId formato inválido. Imposible actualizar proveedor!. dbuserid:" + dbuserid);
+  } 
+  if(!proveedorId){
+    console.log("ERROR: postUpdateProveedor() - No proveedorId. proveedorId Expected - Imposible actualizar proveedor!. dbuserid:" + dbuserid)
+    return res.status(400).json("ERROR: postUpdateProveedor() - No proveedorId. productId Expected - Imposible actualizar proveedor!. dbuserid:" + dbuserid);
+  }
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+    await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  };
+
+  const proveedorFound = await config.globalConnectionStack[dbuserid].proveedor.findById(proveedorId)
+  if(!proveedorFound) {
+    console.log("ERROR: postUpdateProveedor() - Error al obtener proveedorId: " + proveedorId +". Imposible actualizar proveedor!. dbuserid:" + dbuserid )
+    return res.status(500).json("ERROR: postUpdateProveedor() - Error al obtener proveedorId: " + proveedorId +". Imposible actualizar proveedor!. dbuserid:" + dbuserid);
+  }
+
+  proveedorFound.proveedorName = req.body.proveedorName
+  proveedorFound.nroContacto = req.body.nroContacto
+  proveedorFound.emailContacto = req.body.emailContacto
+  proveedorFound.descripProovedor = req.body.descripProovedor
+  proveedorFound.categoriaRubro = req.body.categoriaRubro
+  console.log(proveedorFound)
+
+  try {
+    const proveedorUpdated = await config.globalConnectionStack[dbuserid].proveedor.findByIdAndUpdate(
+      proveedorId,
+      proveedorFound,
+      {
+        new: true,
+      }
+    )
+    if(proveedorUpdated){
+      console.log("MENSAJE: proveedorId: " + proveedorId + " actualizado exitosamente!! - dbuserid: " + dbuserid )
+      return res.status(200).json(proveedorUpdated);
+    }
+  } catch (error) {
+    console.log(error)
+    console.log("ERROR: postUpdateProveedor() - Ha ocurrido al intentar actualizar proveedorId. " + proveedorId + " - dbuserid: " + dbuserid )
+    return res.status(500).json("ERROR: postUpdateProveedor() - Ha ocurrido al intentar actualizar proveedorId. " + proveedorId + " - dbuserid: " + dbuserid )
+  }
+
 }
