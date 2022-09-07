@@ -1394,7 +1394,438 @@ export const getVentasForStatisticsPorTienda = async (req, res) => {
     //voy a obtener los totales de ventas por tienda y por sucursal
     console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
     
-    console.log(req.query.branchId)
+    console.log(req.query.storeId)
     console.log(req.query.yearVentas)
     console.log(req.query)
+
+    const dbuserid = req.userDB;
+    if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+        console.log("ERROR: dbuserid formato inválido. Imposible obtener ventas!")
+        return res.status(400).json("ERROR: dbuserid formato inválido. Imposible obtener ventas!");
+    } 
+    if(!dbuserid){
+        console.log("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!")    
+        return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!");
+    }
+
+    const userId  = req.userId;
+    if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+        console.log("ERROR: userId formato inválido. Imposible obtener ventas!")
+        return res.status(400).json("ERROR: userId formato inválido. Imposible obtener ventas!");
+    } 
+    if(!userId){
+        console.log("ERROR: No userId. userId Expected - Imposible obtener ventas!")
+        return res.status(400).json("ERROR: No userId. userId Expected - Imposible obtener ventas!");
+    } 
+
+    if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+        await userconnection.checkandcreateUserConnectionStack(dbuserid);
+    }
+
+    //Busco el user que me pasan en la db
+    const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+    .populate("tiendas")
+    .populate("tiendas.branches")
+    .populate({ 
+        path: 'tiendas.store',
+        populate: {
+          path: 'store',
+          model: 'Store'
+        } 
+     })
+     .populate({ 
+        path: 'tiendas.branches',
+        populate: [{
+          path: 'ventas',
+          model: 'Venta',
+          populate: {
+            path    : 'userId',
+            model: 'User',
+            populate: {
+                path    : 'roles',
+                populate: 'Role'
+               }
+           }
+        }]
+     })
+     
+    if(!userFound) {
+        console.log("(4565)ERROR: userId: "+userId+" No encontrado en dbuserid: "+dbuserid+". - Imposible obtener ventas!")
+        return res.status(403).json("(4565)ERROR: userId: "+userId+" No encontrado en dbuserid: "+dbuserid+". - Imposible obtener ventas!");
+    }
+    // recorro las tiendas que tiene asignada el user
+    /*
+    {
+        tienda:[
+            tiendaName:
+            totalVentas:
+            totalVentas01:
+            totalVentas02:
+            totalVentas03:
+            totalVentas04:
+            totalVentas05:
+            totalVentas06:
+            totalVentas07:
+            totalVentas08:
+            totalVentas09:
+            totalVentas10:
+            totalVentas11:
+            totalVentas12:
+
+            totalVentasFT:
+            totalVentasFT01:
+            totalVentasFT02:
+            totalVentasFT03:
+            totalVentasFT04:
+            totalVentasFT05:
+            totalVentasFT06:
+            totalVentasFT07:
+            totalVentasFT08:
+            totalVentasFT09:
+            totalVentasFT10:
+            totalVentasFT11:
+            totalVentasFT12:
+
+            totalVentasTC:
+            totalVentasTC01:
+            totalVentasTC02:
+            totalVentasTC03:
+            totalVentasTC04:
+            totalVentasTC05:
+            totalVentasTC06:
+            totalVentasTC07:
+            totalVentasTC08:
+            totalVentasTC09:
+            totalVentasTC10:
+            totalVentasTC11:
+            totalVentasTC12:
+
+            totalTransac:
+            totalTransac01:
+            totalTransac02:
+            totalTransac03:
+            totalTransac04:
+            totalTransac05:
+            totalTransac06:
+            totalTransac07:
+            totalTransac08:
+            totalTransac09:
+            totalTransac10:
+            totalTransac11:
+            totalTransac12:
+
+            totalTransacFT:
+            totalTransacFT01:
+            totalTransacFT02:
+            totalTransacFT03:
+            totalTransacFT04:
+            totalTransacFT05:
+            totalTransacFT06:
+            totalTransacFT07:
+            totalTransacFT08:
+            totalTransacFT09:
+            totalTransacFT10:
+            totalTransacFT11:
+            totalTransacFT12:
+
+            totalTransaTCc:
+            totalTransacTC01:
+            totalTransacTC02:
+            totalTransacTC03:
+            totalTransacTC04:
+            totalTransacTC05:
+            totalTransacTC06:
+            totalTransacTC07:
+            totalTransacTC08:
+            totalTransacTC09:
+            totalTransacTC10:
+            totalTransacTC11:
+            totalTransacTC12:
+
+            
+
+        ]
+    }
+    */
+    var totalesAgrupados=[]
+    for (let t = 0; t < userFound.tiendas.length; t++) {
+        if (String(userFound.tiendas[t].store._id) == String(req.query.storeId)){
+            for (let b = 0; b < userFound.tiendas[t].branches.length; b++) {
+
+                let objTotalesAgrupados = {
+                    branchName : userFound.tiendas[t].branches[b].branchName,
+                    totalVentas : 0,
+                    totalVentas01 : 0,
+                    totalVentas02 : 0,
+                    totalVentas03 : 0,
+                    totalVentas04 : 0,
+                    totalVentas05 : 0,
+                    totalVentas06 : 0,
+                    totalVentas07 : 0,
+                    totalVentas08 : 0,
+                    totalVentas09 : 0,
+                    totalVentas10 : 0,
+                    totalVentas11 : 0,
+                    totalVentas12 : 0,
+        
+                    totalVentasFT : 0,
+                    totalVentasFT01 : 0,
+                    totalVentasFT02 : 0,
+                    totalVentasFT03 : 0,
+                    totalVentasFT04 : 0,
+                    totalVentasFT05 : 0,
+                    totalVentasFT06 : 0,
+                    totalVentasFT07 : 0,
+                    totalVentasFT08 : 0,
+                    totalVentasFT09 : 0,
+                    totalVentasFT10 : 0,
+                    totalVentasFT11 : 0,
+                    totalVentasFT12 : 0,
+        
+                    totalVentasTC : 0,
+                    totalVentasTC01 : 0,
+                    totalVentasTC02 : 0,
+                    totalVentasTC03 : 0,
+                    totalVentasTC04 : 0,
+                    totalVentasTC05 : 0,
+                    totalVentasTC06 : 0,
+                    totalVentasTC07 : 0,
+                    totalVentasTC08 : 0,
+                    totalVentasTC09 : 0,
+                    totalVentasTC10 : 0,
+                    totalVentasTC11 : 0,
+                    totalVentasTC12 : 0,
+        
+                    totalTransac : 0,
+                    totalTransac01 : 0,
+                    totalTransac02 : 0,
+                    totalTransac03 : 0,
+                    totalTransac04 : 0,
+                    totalTransac05 : 0,
+                    totalTransac06 : 0,
+                    totalTransac07 : 0,
+                    totalTransac08 : 0,
+                    totalTransac09 : 0,
+                    totalTransac10 : 0,
+                    totalTransac11 : 0,
+                    totalTransac12 : 0,
+        
+                    totalTransacFT : 0,
+                    totalTransacFT01 : 0,
+                    totalTransacFT02 : 0,
+                    totalTransacFT03 : 0,
+                    totalTransacFT04 : 0,
+                    totalTransacFT05 : 0,
+                    totalTransacFT06 : 0,
+                    totalTransacFT07 : 0,
+                    totalTransacFT08 : 0,
+                    totalTransacFT09 : 0,
+                    totalTransacFT10 : 0,
+                    totalTransacFT11 : 0,
+                    totalTransacFT12 : 0,
+        
+                    totalTransacTC : 0,
+                    totalTransacTC01 : 0,
+                    totalTransacTC02 : 0,
+                    totalTransacTC03 : 0,
+                    totalTransacTC04 : 0,
+                    totalTransacTC05 : 0,
+                    totalTransacTC06 : 0,
+                    totalTransacTC07 : 0,
+                    totalTransacTC08 : 0,
+                    totalTransacTC09 : 0,
+                    totalTransacTC10 : 0,
+                    totalTransacTC11 : 0,
+                    totalTransacTC12 : 0,
+                }
+                //console.log(userFound.tiendas[t].branches[b].ventas)
+                for (let v = 0; v < userFound.tiendas[t].branches[b].ventas.length; v++){ 
+                             
+                    if(userFound.tiendas[t].branches[b].ventas[v].anulada.anulada == false){
+                        let anio=userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getFullYear() 
+                        let mes = userFound.tiendas[t].branches[b].ventas[v].fechaDeVta.getMonth() + 1;
+                        if(String(anio) == String(req.query.yearVentas)){
+                            objTotalesAgrupados.totalVentas += userFound.tiendas[t].branches[b].ventas[v].totalVta
+                            objTotalesAgrupados.totalTransac += 1
+                            if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo > 0){
+                                objTotalesAgrupados.totalVentasFT += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                objTotalesAgrupados.totalTransacFT += 1 
+                            }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta > 0){
+                                objTotalesAgrupados.totalVentasTC += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                objTotalesAgrupados.totalTransacTC += 1 
+                            }                        
+                            switch (mes) {
+                                case 1:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas01 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac01 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT01 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT01 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC01 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC01 += 1 
+                                    }                                
+                                    break;
+                                case 2:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas02 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac02 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT02 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT02 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC02 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC02 += 1 
+                                    }                                
+                                    break;
+                                case 3:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas03 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac03 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT03 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT03 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC03 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC03 += 1 
+                                    }                                
+                                    break;
+                                case 4:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas04 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac04 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT04 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT04 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC04 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC04 += 1 
+                                    }                                
+                                    break;
+                                case 5:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas05 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac05 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT05 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT05 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC05 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC05 += 1 
+                                    }                                
+                                    break;
+                                case 6:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas06 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac06 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT06 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT06 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC06 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC06 += 1 
+                                    }                                
+                                    break;
+                                case 7:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas07 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac07 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT07 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT07 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC07 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC07 += 1 
+                                    }                                
+                                    break;
+                                case 8:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas08 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac08 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT08 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT08 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC08 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC08 += 1 
+                                    }                                
+                                    break;
+                                case 9:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas09 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac09 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT09 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT09 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC09 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC09 += 1 
+                                    }                                
+                                    break;
+                                case 10:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas10 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac10 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT10 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT10 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC10 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC10 += 1 
+                                    }                                
+                                    break;
+                                case 11:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas11 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac11 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT11 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT11 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC11 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC11 += 1 
+                                    }                                
+                                    break;
+                                case 12:
+                                    //TOTAL VENTAS/TRANSAC gral del mes
+                                    objTotalesAgrupados.totalVentas12 += userFound.tiendas[t].branches[b].ventas[v].totalVta,
+                                    objTotalesAgrupados.totalTransac12 += 1
+                                    //TOTAL VENTAS/TRANSAC del mes por forma de pago
+                                    if(userFound.tiendas[t].branches[b].ventas[v].montoEfectivo>0){
+                                        objTotalesAgrupados.totalVentasFT12 += userFound.tiendas[t].branches[b].ventas[v].montoEfectivo
+                                        objTotalesAgrupados.totalTransacFT12 += 1 
+                                    }else if(userFound.tiendas[t].branches[b].ventas[v].montoTarjeta>0){
+                                        objTotalesAgrupados.totalVentasTC12 += userFound.tiendas[t].branches[b].ventas[v].montoTarjeta
+                                        objTotalesAgrupados.totalTransacTC12 += 1 
+                                    }                                
+                                    break;
+                            }
+                        }
+
+                    }
+                }
+
+                objTotalesAgrupados.totalVentasFT = objTotalesAgrupados.totalVentasFT01 + objTotalesAgrupados.totalVentasFT02 + objTotalesAgrupados.totalVentasFT03 + objTotalesAgrupados.totalVentasFT04 + objTotalesAgrupados.totalVentasFT05 + objTotalesAgrupados.totalVentasFT06 + objTotalesAgrupados.totalVentasFT07 + objTotalesAgrupados.totalVentasFT08 + objTotalesAgrupados.totalVentasFT09 + objTotalesAgrupados.totalVentasFT10 + objTotalesAgrupados.totalVentasFT11 + objTotalesAgrupados.totalVentasFT12;
+                objTotalesAgrupados.totalVentasTC = objTotalesAgrupados.totalVentasTC01 + objTotalesAgrupados.totalVentasTC02 + objTotalesAgrupados.totalVentasTC03 + objTotalesAgrupados.totalVentasTC04 + objTotalesAgrupados.totalVentasTC05 + objTotalesAgrupados.totalVentasTC06 + objTotalesAgrupados.totalVentasTC07 + objTotalesAgrupados.totalVentasTC08 + objTotalesAgrupados.totalVentasTC09 + objTotalesAgrupados.totalVentasTC10 + objTotalesAgrupados.totalVentasTC11 + objTotalesAgrupados.totalVentasTC12;
+                objTotalesAgrupados.totalTransacFT = objTotalesAgrupados.totalTransacFT01 + objTotalesAgrupados.totalTransacFT02 + objTotalesAgrupados.totalTransacFT03 + objTotalesAgrupados.totalTransacFT04 + objTotalesAgrupados.totalTransacFT05 + objTotalesAgrupados.totalTransacFT06 + objTotalesAgrupados.totalTransacFT07 + objTotalesAgrupados.totalTransacFT08 + objTotalesAgrupados.totalTransacFT09 + objTotalesAgrupados.totalTransacFT10 + objTotalesAgrupados.totalTransacFT11 + objTotalesAgrupados.totalTransacFT12;
+                objTotalesAgrupados.totalTransacTC = objTotalesAgrupados.totalTransacTC01 + objTotalesAgrupados.totalTransacTC02 + objTotalesAgrupados.totalTransacTC03 + objTotalesAgrupados.totalTransacTC04 + objTotalesAgrupados.totalTransacTC05 + objTotalesAgrupados.totalTransacTC06 + objTotalesAgrupados.totalTransacTC07 + objTotalesAgrupados.totalTransacTC08 + objTotalesAgrupados.totalTransacTC09 + objTotalesAgrupados.totalTransacTC10 + objTotalesAgrupados.totalTransacTC11 + objTotalesAgrupados.totalTransacTC12;       
+                totalesAgrupados.push(objTotalesAgrupados)
+
+            }
+        }
+    }
+    res.status(200).json(totalesAgrupados);
+
 }
