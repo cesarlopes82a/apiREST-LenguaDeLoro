@@ -196,10 +196,20 @@ export const getCategories = async (req, res) => {
         return res.status(400).json("ERROR: categoriaId: " + params.categoriaId + " no existe en dbuserid:"+dbuserid+". Imposible eliminar categoria!");
     }
 
+
+
     const productsFoundInStore = await config.globalConnectionStack[dbuserid].product.find({categoriaRubro:params.categoriaId, storeId: params.storeId})
     if(productsFoundInStore.length > 0){
         return res.status(403).json("ERROR: Existen productos que aún pertenecen a esta categoria. Verifique! Imposible eliminar categoria!");
     }
+
+    
+    const proveedoresFoundInStore = await config.globalConnectionStack[dbuserid].proveedor.find({categoriaRubro:params.categoriaId})
+    if(proveedoresFoundInStore.length > 0){
+        return res.status(403).json("ERROR: Aun existen PROVEEDORES que comercializan productos de a esta categoria. Verifique! Imposible eliminar categoria!");
+    }
+    
+
     //veo de eliminar la categoria del array de categoriaRubo del la tienda/store
     for(let i=0; i<storeFound.categoriaRubro.length; i++){
         if(String(storeFound.categoriaRubro[i]) == params.categoriaId){
