@@ -484,4 +484,196 @@ export const addListadpToStore = async (dbuserid, storeId, listaId) => {
     console.log(error);
     return false
   }
+  
+  
+}
+export const eliminarStore = async (req, res) => {
+  console.log("MENSAJE: eliminarRegistrarCompra() - Iniciando proceso de eliminacion de registro de compra")
+  const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+ 
+  const storeId = req.params.storeId
+
+  if (!String(dbuserid).match(/^[0-9a-fA-F]{24}$/)){
+      console.log("ERROR: dbuserid formato inválido. Imposible obtener ventas!")
+      return res.status(400).json("ERROR: dbuserid formato inválido. Imposible obtener ventas!");
+  } 
+  if(!dbuserid){
+      console.log("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!")    
+      return res.status(400).json("ERROR: No dbuserid. dbuserid Expected - Imposible obtener ventas!");
+  }
+
+  const userId  = req.userId;
+  if (!String(userId).match(/^[0-9a-fA-F]{24}$/)){
+      console.log("ERROR: userId formato inválido. Imposible obtener ventas!")
+      return res.status(400).json("ERROR: userId formato inválido. Imposible obtener ventas!");
+  } 
+  if(!userId){
+      console.log("ERROR: No userId. userId Expected - Imposible obtener ventas!")
+      return res.status(400).json("ERROR: No userId. userId Expected - Imposible obtener ventas!");
+  } 
+
+  const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId)
+  .populate("tiendas")
+    .populate("tiendas.branches")
+    .populate({ 
+        path: 'tiendas.store',
+        populate: {
+          path: 'store',
+          model: 'Store'
+        } 
+     })
+
+  if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
+      await userconnection.checkandcreateUserConnectionStack(dbuserid);
+  }
+
+  //elimino las compras
+  let indexTiendaQueQuieroEliminar
+  for (let t = 0; t < userFound.tiendas.length; t++) {
+    console.log("1111111111111111111111111111111111111111111111111")
+    console.log(userFound.tiendas)
+    console.log("1111111111111111111111111111111111111111111111111")
+    console.log(userFound.tiendas[t].store._id)
+    if (String(userFound.tiendas[t].store._id) == String(storeId)){
+      indexTiendaQueQuieroEliminar=t-1
+      console.log("userFound.tiendas[t].store._id    encontradaaaaaaaaaaa")
+      console.log(userFound.tiendas[t].store._id)
+      console.log(userFound.tiendas[t].branches.length)
+      console.log(userFound.tiendas[t].branches)
+      for (let b = 0; b < userFound.tiendas[t].branches.length; b++) {
+        
+        //ELIMINO LAS VENTAS
+        console.log("MENSAJE: eliminando ventas para branchId: " + userFound.tiendas[t].branches[b]._id)
+        for (let v = 0; v < userFound.tiendas[t].branches[b].ventas.length; v++){ 
+          var id = String(userFound.tiendas[t].branches[b].ventas[v]._id)
+          const ventaDeleted = await config.globalConnectionStack[dbuserid].venta.findByIdAndDelete(id, function (err, docs) {
+            if (err){
+                console.log(err)
+            }
+            else{
+                console.log("Deleted : ", docs);
+            }
+          });
+        }
+        //ELIMINO LAS compras
+        console.log("MENSAJE: eliminando compras para branchId: " + userFound.tiendas[t].branches[b]._id)
+        for (let c = 0; c < userFound.tiendas[t].branches[b].compras.length; c++){ 
+          var id = String(userFound.tiendas[t].branches[b].compras[c]._id)
+          const compraDeleted = await config.globalConnectionStack[dbuserid].compra.findByIdAndDelete(id, function (err, docs) {
+            if (err){
+                console.log(err)
+            }
+            else{
+                console.log("Deleted : ", docs);
+            }
+          });
+        }
+        
+        //ELIMINO LA branch
+        console.log("MENSAJE: eliminando branchId: " + userFound.tiendas[t].branches[b]._id)
+        var id = String(userFound.tiendas[t].branches[b]._id)
+        const branchDeleted = await config.globalConnectionStack[dbuserid].branch.findByIdAndDelete(id, function (err, docs) {
+          if (err){
+              console.log(err)
+          }
+          else{
+              console.log("Deleted : ", docs);
+          }
+        });
+
+      }
+      //Elimino listas de precios
+      console.log("MENSAJE: eliminando listadeprecios...")
+      const listasDeleted = await config.globalConnectionStack[dbuserid].listadeprecios.deleteMany( { storeId: storeId } )
+
+      //Elimino los productos
+      console.log("MENSAJE: eliminando productos...")
+      const productsDeleted = await config.globalConnectionStack[dbuserid].product.deleteMany( { storeId: storeId } )
+ 
+      //Elimino los tienda
+      console.log("MENSAJE: eliminando tienda " + storeId + "...")
+      const storeDeleted = await config.globalConnectionStack[dbuserid].store.deleteMany( { _id: storeId } )
+
+      //Elimino la tienda del perfil del user
+
+      
+/*
+      console.log("ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt " + t)
+      const userFound = await config.globalConnectionStack[dbuserid].user.findById(userId) 
+      console.log("------------")
+      console.log(userFound.tiendas[t-1])
+      userFound.tiendas.splice((t-1),1)
+      
+      const userUpdated = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+        userId,
+        userFound,
+        {
+          new: true,
+        }
+      )
+
+      const userFoundFiltered = userFound.filter((item) => item !== 'react')
+*/
+    }
+  }
+
+  const usersFound = await config.globalConnectionStack[dbuserid].user.find()
+  
+  for (let u = 0; u < usersFound.length; u++){
+    let tiendasFiltered = []
+    console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    console.log(usersFound[u].username)
+    for (let t = 0; t < usersFound[u].tiendas.length; t++){ 
+      console.log(usersFound[u].tiendas[t])
+      if(String(usersFound[u].tiendas[t].store)==String(storeId)){
+        console.log("encontraaaaaddaaaaaaa salteoo")                
+      }else{
+        tiendasFiltered.push(usersFound[u].tiendas[t])
+      }
+    }
+    //borro el array
+    usersFound[u].tiendas.splice(0, usersFound[u].tiendas.length);
+    //lleno el array sin la tienda que acabo de eliminar
+    usersFound[u].tiendas = tiendasFiltered.slice();
+    //actualizo la db
+    const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+      usersFound[u]._id,
+      usersFound[u],
+      {
+        new: true,
+      }
+    )
+    if(!updatedUser){
+      console.log( "ERROR(23453): error al actualizar la DB " + dbuserid);
+      return false 
+    }
+  }
+
+
+
+  /*
+const updatedUser = await config.globalConnectionStack[dbuserid].user.findByIdAndUpdate(
+          usersFound[u]._id,
+          usersFound[u],
+          {
+            new: true,
+          }
+        )
+        if(!updatedUser){
+          console.log( "ERROR(rtret): error al actualizar la DB " + dbuserid);
+          return false 
+        }
+  */
+
+  //ELIMINO LAS SUCURSALES
+
+  //const branchesDeleted = await config.globalConnectionStack[dbuserid].branch.findOneAndDelete({ storeId: storeId });
+
+  //const branchesDeleted = await config.globalConnectionStack[dbuserid].branch.findOneAndDelete({ storeId: storeId });
+
+
+
+  console.log("store idddd: " + storeId)
+  return res.status(200).json({ 
+    message: "successfully"})
 }

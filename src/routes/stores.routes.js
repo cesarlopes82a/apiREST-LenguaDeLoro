@@ -26,4 +26,10 @@ router.delete(
   storesCtrl.deleteStoreById
 );
 
+router.delete(
+  "/deleteStore/:storeId",
+  [authJwt.verifyToken, authJwt.isAdminMaster],
+  storesCtrl.eliminarStore
+);
+
 export default router;

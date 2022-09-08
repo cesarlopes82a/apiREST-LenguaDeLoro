@@ -9,7 +9,7 @@ const checkStoreExisted = async(req, res, next) => {
 
     const storeFound = await config.globalConnectionStack[dbuserid].store.findOne({ storeName: storeName });
 
-    if (storeFound) return res.status(400).json({ message: "(checkStoreExisted)The store already exists" });
+    if (storeFound) return res.status(400).json({ message: "Ya existe una tienda con el mismo nombre!" });
 
     next();
     

@@ -206,7 +206,7 @@ export const getCategories = async (req, res) => {
     
     const proveedoresFoundInStore = await config.globalConnectionStack[dbuserid].proveedor.find({categoriaRubro:params.categoriaId})
     if(proveedoresFoundInStore.length > 0){
-        return res.status(403).json("ERROR: Aun existen PROVEEDORES que comercializan productos de a esta categoria. Verifique! Imposible eliminar categoria!");
+        return res.status(403).json("ERROR: Aús existen PROVEEDOR/es que comercializan productos de a esta categoria. Verifique! Imposible eliminar categoria!");
     }
     
 

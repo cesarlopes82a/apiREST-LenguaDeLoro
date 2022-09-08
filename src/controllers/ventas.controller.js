@@ -1417,6 +1417,7 @@ export const getVentasForStatisticsPorTienda = async (req, res) => {
         console.log("ERROR: No userId. userId Expected - Imposible obtener ventas!")
         return res.status(400).json("ERROR: No userId. userId Expected - Imposible obtener ventas!");
     } 
+    
 
     if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
         await userconnection.checkandcreateUserConnectionStack(dbuserid);
