@@ -39,4 +39,10 @@ router.delete(
 );
 
 
+router.delete(
+  "/deleteBranch/:branchId",
+  [authJwt.verifyToken, authJwt.isAdminMaster],
+  branchCtrl.deleteBranch
+);
+
 export default router;
