@@ -600,7 +600,7 @@ export const eliminarStore = async (req, res) => {
   
   for (let u = 0; u < usersFound.length; u++){
     let tiendasFiltered = []
-    for (let t = 0; t < usersFound[u].tiendas.length; t++){ 
+    for (let t = 0; t < usersFound[u].tiendas.length; t++){       
       console.log(usersFound[u].tiendas[t])
       if(String(usersFound[u].tiendas[t].store)!=String(storeId)){
         tiendasFiltered.push(usersFound[u].tiendas[t])

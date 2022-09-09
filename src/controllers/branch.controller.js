@@ -750,15 +750,15 @@ export const deleteBranch = async (req, res) => {
   //Elimino la SUCURSAL del perfil de los useruarios
   const usersFound = await config.globalConnectionStack[dbuserid].user.find()
   for (let u = 0; u < usersFound.length; u++){
-    let branchesFiltered = []
     for (let t = 0; t < usersFound[u].tiendas.length; t++){ 
+      let branchesFiltered = []
       for (let b = 0; b < usersFound[u].tiendas[t].branches.length; b++) {
-        if (String(usersFound[u].tiendas[t].branches[b]._id) == String(branchId)){
+        if (String(usersFound[u].tiendas[t].branches[b]._id) != String(branchId)){
           branchesFiltered.push(usersFound[u].tiendas[t].branches[b])
         }
       }
       //borro el array de sucursales
-      usersFound[u].tiendas.splice(0, usersFound[u].tiendas[t].branches.length);
+      usersFound[u].tiendas[t].branches.splice(0, usersFound[u].tiendas[t].branches.length);
       //lleno el array de la sucursales que acabo de eliminar
       usersFound[u].tiendas[t].branches = branchesFiltered.slice();
       //actualizo la db
