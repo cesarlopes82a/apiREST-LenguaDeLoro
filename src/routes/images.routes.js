@@ -24,5 +24,11 @@ router.get("/vendedores/:image", imagesCtrl.getImageVendedores);
 
 router.get("/ventas/:image", imagesCtrl.getImageVentas);
 
+router.get("/loro2/:image", imagesCtrl.getImageLoro2);
+
+router.get("/proveedores/:image", imagesCtrl.getImageProveedores);
+
+router.get("/tiendas/:image", imagesCtrl.getImageTiendas);
+
 
 export default router;

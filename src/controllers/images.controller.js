@@ -155,3 +155,44 @@ export const getImageVentas = async (req, res) => {
         res.sendFile(pathNoImage)
     }
 }
+
+export const getImageLoro2 = async (req, res) => {
+    console.log("getImageLoro2() - buscando imagen de loro2 ")
+    const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+
+    const image = req.params.image
+    const pathImage = path.resolve(__dirname,`../imagenes/${image}`)
+    if(await fs.existsSync(pathImage)){
+        res.sendFile(pathImage)
+    }else {
+        const pathNoImage = path.resolve(__dirname,`../imagenes/no-image.png`)
+        res.sendFile(pathNoImage)
+    }
+}
+export const getImageProveedores = async (req, res) => {
+    console.log("getImageProveedores() - buscando imagen de proveedores ")
+    const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+
+    const image = req.params.image
+    const pathImage = path.resolve(__dirname,`../imagenes/${image}`)
+    if(await fs.existsSync(pathImage)){
+        res.sendFile(pathImage)
+    }else {
+        const pathNoImage = path.resolve(__dirname,`../imagenes/no-image.png`)
+        res.sendFile(pathNoImage)
+    }
+}
+
+export const getImageTiendas = async (req, res) => {
+    console.log("getImageTiendas() - buscando imagen de proveedores ")
+    const dbuserid = req.userDB //dbuserid me dice en que db tengo que escribir
+
+    const image = req.params.image
+    const pathImage = path.resolve(__dirname,`../imagenes/${image}`)
+    if(await fs.existsSync(pathImage)){
+        res.sendFile(pathImage)
+    }else {
+        const pathNoImage = path.resolve(__dirname,`../imagenes/no-image.png`)
+        res.sendFile(pathNoImage)
+    }
+}
