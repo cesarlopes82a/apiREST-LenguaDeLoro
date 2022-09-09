@@ -774,9 +774,35 @@ export const deleteBranch = async (req, res) => {
         return false 
       }
     }
-    
   }
-   
+  //Elimino la SUCURSAL del array de branches de la coleccion de stores
+  const storesFound = await config.globalConnectionStack[dbuserid].store.find()
+
+  for (let s = 0; s < storesFound.length; s++){
+    let branchesFiltered = []
+    for (let b = 0; b < storesFound[s].branches.length; b++){       
+      if (String(storesFound[s].branches[b]._id) != String(branchId)){
+        branchesFiltered.push(storesFound[s].branches[b])
+      }
+    }
+    //borro el array de sucursales
+    storesFound[s].branches.splice(0, storesFound[s].branches.length);
+    //lleno el array de la sucursales que acabo de eliminar
+    storesFound[s].branches = branchesFiltered.slice();
+    //actualizo la db
+    const updatedStore = await config.globalConnectionStack[dbuserid].store.findByIdAndUpdate(
+      storesFound[s]._id,
+      storesFound[s],
+      {
+        new: true,
+      }
+    )
+    if(!updatedStore){
+      console.log( "ERROR(23453): error al actualizar la coleccion STORE - DB " + dbuserid);
+      return false 
+    }
+  }
+
    
 
 
