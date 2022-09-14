@@ -7,7 +7,7 @@
     "babel-node": "babel-node --presets=@babel/preset-env",
     "dev": "nodemon src/index.js --exec babel-node",
     "build": "babel src --out-dir build",
-    "start": "node build/index.js",
+    "start": "node src/index.js",
     "test": "jest"
   },
   "repository": {

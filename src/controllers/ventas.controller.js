@@ -21,6 +21,9 @@ export const registrarVenta = async (req, res) => {
     registroVenta.totalMontoPendiente = params.totalVenta - params.montoEfectivo - params.montoEfectivo
     registroVenta.comentarioVta = params.comentarioVenta
 
+    console.log("datos a registrar:")
+    console.log(registroVenta)
+
     if (typeof config.globalConnectionStack[dbuserid] === 'undefined') {
         await userconnection.checkandcreateUserConnectionStack(dbuserid);
     }
@@ -88,8 +91,6 @@ export const registrarVenta = async (req, res) => {
                     const ventaAsociada = await asociarVentaBranch()
                     .then((response)=>{
                         console.log("MENSAJE: Venta ASOCIADA con exito a la sucursalllll")
-                        console.log("la response")
-                        console.log(response)
                         return response
                     })
                     .catch((error)=>{
@@ -147,14 +148,9 @@ export const registrarVenta = async (req, res) => {
             if(!branchFoundUpdated) return res.status(403).json("(35)Error: La sucursal " + params.branchId + " NO existe en la coleccion de SUCURSALES/BRANCHES.");
             for (let i = 0; i < registroVenta.productosVendidos.length; i++) {
                 const index = branchFoundUpdated.stock.findIndex(object => {
-                    console.log("veo esto")
-                    console.log(object.product)
-                    console.log(registroVenta.productosVendidos[i].productId)
                     return String(object.product) == String(registroVenta.productosVendidos[i].productId);
                   });
-                  console.log(branchFoundUpdated.stock)
-                console.log(branchFoundUpdated.stock[index])
-                console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+         
                 if(branchFoundUpdated.stock[index]){
                     branchFoundUpdated.stock[index].cantidad -= registroVenta.productosVendidos[i].cantidad
                 } else{
