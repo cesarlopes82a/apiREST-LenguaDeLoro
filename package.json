@@ -6,9 +6,9 @@
   "scripts": {
     "babel-node": "babel-node --presets=@babel/preset-env",
     "dev": "nodemon src/index.js --exec babel-node",
-    "build": "babel src --out-dir build",
-    "start": "node src/index.js",
-    "test": "jest"
+    "build": "babel src --out-dir app",
+    "start": "node app/index.js",
+    "test": "test"
   },
   "repository": {
     "type": "git",
