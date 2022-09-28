@@ -75,7 +75,8 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
    
     
   if(listaFound){   
-    
+
+    console.log(listaFound)
     console.log("MENSAJE: listas de precios encontradas para " + storeId);
     return res.status(200).json(listaFound)
   }else{
@@ -104,7 +105,8 @@ export const registrarNuevaLDP = async(req,res) => {
 
   let arrayProductosOfLDP = []
   for (let producto of params.products) {
-
+    console.log("esto es un produccccccccc")
+    console.log(producto)
     let objldpproduct = {
       product: producto._id,
       precioVenta: producto.precioVenta
