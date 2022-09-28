@@ -75,8 +75,6 @@ export const getListasdpByStoreIdAndPopulateInfo = async(req, res) => {
    
     
   if(listaFound){   
-
-    console.log(listaFound)
     console.log("MENSAJE: listas de precios encontradas para " + storeId);
     return res.status(200).json(listaFound)
   }else{
@@ -105,8 +103,6 @@ export const registrarNuevaLDP = async(req,res) => {
 
   let arrayProductosOfLDP = []
   for (let producto of params.products) {
-    console.log("esto es un produccccccccc")
-    console.log(producto)
     let objldpproduct = {
       product: producto._id,
       precioVenta: producto.precioVenta
@@ -133,14 +129,10 @@ export const registrarNuevaLDP = async(req,res) => {
 
   //tengo que verificar si lo que me pasan como storeId es realmente el storeId o es una branchId para buscar su storeId
   const storeFound = await config.globalConnectionStack[dbuserid].store.findById(listadeprecios.storeId);
-  console.log("---------las storeFound")
-  console.log(storeFound)
   if(storeFound){
     console.log(storeFound)
   }else{
     const branchFound = await config.globalConnectionStack[dbuserid].branch.findById(listadeprecios.storeId);
-    console.log("---------las branchFound")
-    console.log(branchFound)
     if(branchFound){
       listadeprecios.storeId=branchFound.storeId
     }
@@ -157,8 +149,6 @@ export const registrarNuevaLDP = async(req,res) => {
     //PASO 1: Crear el registro en la DB
     const saveLdps = Promise.resolve(config.globalConnectionStack[dbuserid].listadeprecios(listadeprecios).save());
         saveLdps.then((newLDPs) => {
-            console.log("la saveLdps")
-            console.log(newLDPs)
             console.log("MENSAJE: Lista de Producto guardado exitosamente en " + dbuserid +":listadeprecios colection")
             
             //PASO 2: asociar el registro creado a la store.
