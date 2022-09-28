@@ -33,6 +33,10 @@ app.set("pkg", pkg);
 app.set("port", process.env.PORT || 4011);
 app.set("json spaces", 4);
 
+// fixing "413 Request Entity Too Large" errors
+app.use(express.json({limit: "10mb", extended: true}))
+app.use(express.urlencoded({limit: "10mb", extended: true, parameterLimit: 50000}))
+
 // Middlewares
 const corsOptions = {
  // Origin: "http://localhost:4200/private",
